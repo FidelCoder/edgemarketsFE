@@ -19,6 +19,23 @@ import {
 const IDEMPOTENCY_HEADER = "idempotency-key";
 const IDEMPOTENCY_STATUS_HEADER = "idempotency-status";
 
+const toNetworkError = (error: unknown): Error => {
+  if (!(error instanceof TypeError)) {
+    return error instanceof Error ? error : new Error("Unexpected API error.");
+  }
+
+  const message = error.message.toLowerCase();
+  const isLikelyNetworkError = message.includes("fetch") || message.includes("network");
+
+  if (!isLikelyNetworkError) {
+    return error;
+  }
+
+  return new Error(
+    `Cannot reach backend at ${apiBaseUrl}. Start EdgeMarkets backend on port 4000 or set NEXT_PUBLIC_API_BASE_URL.`
+  );
+};
+
 const buildRequest = (path: string, init?: RequestInit): Request => {
   return new Request(`${apiBaseUrl}${path}`, {
     ...init,
@@ -63,17 +80,34 @@ const parseIdempotencyStatus = (response: Response): "none" | "created" | "repla
 };
 
 const parseEnvelope = async <T>(response: Response): Promise<ApiEnvelope<T>> => {
-  const body = (await response.json()) as ApiEnvelope<T>;
+  let body: ApiEnvelope<T> | null = null;
 
-  if (!response.ok || body.error) {
-    throw new Error(body.error?.message ?? "Unexpected API error.");
+  try {
+    body = (await response.json()) as ApiEnvelope<T>;
+  } catch {
+    body = null;
   }
 
-  return body;
+  if (!response.ok) {
+    throw new Error(body?.error?.message ?? `Request failed with status ${response.status}.`);
+  }
+
+  if (!body || body.error) {
+    throw new Error(body?.error?.message ?? "Unexpected API error.");
+  }
+
+  return body as ApiEnvelope<T>;
 };
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(buildRequest(path, init));
+  let response: Response;
+
+  try {
+    response = await fetch(buildRequest(path, init));
+  } catch (error) {
+    throw toNetworkError(error);
+  }
+
   const body = await parseEnvelope<T>(response);
 
   if (!body.data) {
@@ -88,15 +122,21 @@ const requestMutation = async <T>(
   body: unknown,
   idempotencyKey = generateIdempotencyKey()
 ): Promise<MutationResult<T>> => {
-  const response = await fetch(
-    buildRequest(path, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: {
-        [IDEMPOTENCY_HEADER]: idempotencyKey
-      }
-    })
-  );
+  let response: Response;
+
+  try {
+    response = await fetch(
+      buildRequest(path, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          [IDEMPOTENCY_HEADER]: idempotencyKey
+        }
+      })
+    );
+  } catch (error) {
+    throw toNetworkError(error);
+  }
 
   const envelope = await parseEnvelope<T>(response);
 
