@@ -142,6 +142,11 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.ghostAction {
+  background: #e9efff;
+  color: #1e49a4;
+}
+
 .panelHeaderRow {
   display: flex;
   align-items: center;
@@ -233,10 +238,41 @@ button:disabled {
   color: #2b3e60;
 }
 
+.sessionPanel {
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.sessionForm {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sessionMeta,
+.handoffMeta {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.84rem;
+  color: #274169;
+}
+
 .auditPanel {
   padding: 1rem;
   display: grid;
   gap: 0.75rem;
+}
+
+.auditFilterBar {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.auditFilterActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
 }
 
 .auditEmpty {
@@ -300,6 +336,12 @@ button:disabled {
   padding: 1rem;
   display: grid;
   gap: 0.7rem;
+}
+
+.strategyActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .strategyCard p {
@@ -370,5 +412,15 @@ button:disabled {
   .inputGrid,
   .metricGrid {
     grid-template-columns: 1fr;
+  }
+
+  .auditFilterBar {
+    grid-template-columns: 1fr;
+  }
+
+  .auditFilterActions {
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }

@@ -20,7 +20,11 @@ export type AuditEntityType =
   | "trigger_job"
   | "execution_log"
   | "idempotency"
-  | "worker";
+  | "worker"
+  | "session"
+  | "handoff";
+
+export type AuthClient = "web" | "extension";
 
 export interface ApiEnvelope<T> {
   data: T | null;
@@ -103,6 +107,30 @@ export interface FollowStrategyPayload {
   fundingStablecoin: StablecoinSymbol;
 }
 
+export interface CreateTriggerJobPayload {
+  strategyId: string;
+  userId: string;
+  fundingStablecoin: StablecoinSymbol;
+  allocationUsd: number;
+  maxAttempts?: number;
+}
+
+export interface TriggerJob {
+  id: string;
+  strategyId: string;
+  userId: string;
+  fundingStablecoin: StablecoinSymbol;
+  allocationUsd: number;
+  status: "pending" | "processing" | "completed" | "failed";
+  stateVersion: number;
+  attemptCount: number;
+  maxAttempts: number;
+  nextRunAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lastError?: string;
+}
+
 export interface AuditLog {
   id: string;
   action: string;
@@ -118,4 +146,21 @@ export interface MutationResult<T> {
   data: T;
   idempotencyStatus: IdempotencyStatus;
   idempotencyKey?: string;
+}
+
+export interface AuditLogQuery {
+  actorId?: string;
+  entityType?: AuditEntityType;
+  limit?: number;
+}
+
+export interface AuthSession {
+  id: string;
+  token: string;
+  walletAddress: string;
+  userId: string;
+  client: AuthClient;
+  linkedSessionId?: string;
+  createdAt: string;
+  lastActiveAt: string;
 }

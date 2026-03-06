@@ -1,6 +1,9 @@
 const inputApiBaseUrl = document.querySelector("#apiBaseUrl");
 const inputUserId = document.querySelector("#userId");
 const selectFundingStablecoin = document.querySelector("#fundingStablecoin");
+const handoffCodeInput = document.querySelector("#handoffCode");
+const consumeHandoffButton = document.querySelector("#consumeHandoff");
+const sessionMetaElement = document.querySelector("#sessionMeta");
 const saveButton = document.querySelector("#saveSettings");
 const checkRuntimeButton = document.querySelector("#checkRuntime");
 const statusElement = document.querySelector("#status");
@@ -31,6 +34,9 @@ const fillForm = (settings) => {
   inputApiBaseUrl.value = settings.apiBaseUrl;
   inputUserId.value = settings.userId;
   selectFundingStablecoin.value = settings.fundingStablecoin;
+  sessionMetaElement.textContent = settings.sessionToken
+    ? `Bound wallet: ${settings.walletAddress || "--"} | User: ${settings.userId}`
+    : "No bound session.";
 };
 
 const loadSettings = async () => {
@@ -78,7 +84,27 @@ const checkRuntime = async () => {
   }
 };
 
+const consumeHandoff = async () => {
+  setStatus("Binding extension session...");
+
+  try {
+    const response = await sendMessage({
+      type: "EDGE_AUTH_CONSUME_HANDOFF",
+      payload: {
+        handoffCode: handoffCodeInput.value.trim().toUpperCase()
+      }
+    });
+
+    fillForm(response.settings);
+    handoffCodeInput.value = "";
+    setStatus(`Extension bound to ${response.session.userId}.`);
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Could not bind handoff code.");
+  }
+};
+
 saveButton.addEventListener("click", saveSettings);
 checkRuntimeButton.addEventListener("click", checkRuntime);
+consumeHandoffButton.addEventListener("click", consumeHandoff);
 
 void loadSettings();

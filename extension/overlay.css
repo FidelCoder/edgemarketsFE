@@ -67,7 +67,8 @@
 .edge-close-btn,
 .edge-refresh-btn,
 .edge-follow-btn,
-.edge-simulate-btn {
+.edge-simulate-btn,
+.edge-trigger-btn {
   border: 0;
   border-radius: 10px;
   padding: 7px 10px;
@@ -79,7 +80,8 @@
 
 .edge-close-btn,
 .edge-refresh-btn,
-.edge-simulate-btn {
+.edge-simulate-btn,
+.edge-trigger-btn {
   background: #dfe9ff;
   color: #1d469f;
 }
@@ -92,7 +94,8 @@
 .edge-close-btn:disabled,
 .edge-refresh-btn:disabled,
 .edge-follow-btn:disabled,
-.edge-simulate-btn:disabled {
+.edge-simulate-btn:disabled,
+.edge-trigger-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -186,6 +189,7 @@
 
 .edge-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

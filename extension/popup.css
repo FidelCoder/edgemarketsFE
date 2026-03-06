@@ -82,3 +82,23 @@ button.ghost {
   color: var(--muted);
   min-height: 1.2rem;
 }
+
+.sessionBlock {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: #f8fbff;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sessionBlock h2 {
+  margin: 0;
+  font-size: 0.93rem;
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #274169;
+}

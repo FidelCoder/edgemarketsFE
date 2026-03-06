@@ -32,6 +32,16 @@
         </select>
       </label>
 
+      <section class="sessionBlock">
+        <h2>Wallet Handoff</h2>
+        <p id="sessionMeta" class="meta">No bound session.</p>
+        <label>
+          Handoff Code
+          <input id="handoffCode" type="text" placeholder="EM-XXXXXXXX" />
+        </label>
+        <button id="consumeHandoff" class="ghost">Bind Extension Session</button>
+      </section>
+
       <button id="saveSettings">Save Settings</button>
       <button id="checkRuntime" class="ghost">Check Runtime</button>
       <p id="status" class="status"></p>

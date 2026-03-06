@@ -157,6 +157,36 @@
     }
   };
 
+  const queueTriggerJob = async (strategy) => {
+    setState({
+      pendingStrategyId: strategy.id,
+      error: "",
+      notice: `Queueing trigger for ${strategy.name}...`
+    });
+
+    try {
+      const response = await sendMessage({
+        type: "EDGE_CREATE_TRIGGER_JOB",
+        payload: {
+          strategyId: strategy.id
+        }
+      });
+
+      setState({
+        pendingStrategyId: null,
+        notice: `Trigger queued (${response.triggerJob.status}) for ${response.strategy.name} (${response.idempotencyStatus}).`
+      });
+
+      await loadPanelData();
+    } catch (error) {
+      setState({
+        pendingStrategyId: null,
+        error: error instanceof Error ? error.message : "Could not queue trigger job.",
+        notice: ""
+      });
+    }
+  };
+
   const renderStrategies = () => {
     strategyList.innerHTML = "";
 
@@ -185,6 +215,7 @@
         </div>
         <div class="edge-actions">
           <button type="button" class="edge-simulate-btn" ${isPending ? "disabled" : ""}>Simulate</button>
+          <button type="button" class="edge-trigger-btn" ${isPending ? "disabled" : ""}>Queue Trigger</button>
           <button type="button" class="edge-follow-btn" ${isPending ? "disabled" : ""}>${
             isPending ? "Working..." : "Follow"
           }</button>
@@ -192,10 +223,15 @@
       `;
 
       const simulateButton = card.querySelector(".edge-simulate-btn");
+      const triggerButton = card.querySelector(".edge-trigger-btn");
       const followButton = card.querySelector(".edge-follow-btn");
 
       simulateButton.addEventListener("click", () => {
         void simulateStrategy(strategy);
+      });
+
+      triggerButton.addEventListener("click", () => {
+        void queueTriggerJob(strategy);
       });
 
       followButton.addEventListener("click", () => {

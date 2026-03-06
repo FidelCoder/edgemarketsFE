@@ -5,10 +5,20 @@ import { Strategy } from "@/lib/types";
 interface StrategyCardProps {
   strategy: Strategy;
   followPending: boolean;
+  triggerPending: boolean;
   onFollow: (strategy: Strategy) => void;
+  onQueueTrigger: (strategy: Strategy) => void;
 }
 
-export const StrategyCard = ({ strategy, followPending, onFollow }: StrategyCardProps) => {
+export const StrategyCard = ({
+  strategy,
+  followPending,
+  triggerPending,
+  onFollow,
+  onQueueTrigger
+}: StrategyCardProps) => {
+  const isBusy = followPending || triggerPending;
+
   return (
     <article className="panel strategyCard">
       <div className="panelHeaderRow">
@@ -51,9 +61,14 @@ export const StrategyCard = ({ strategy, followPending, onFollow }: StrategyCard
         </div>
       </div>
 
-      <button disabled={followPending} onClick={() => onFollow(strategy)}>
-        {followPending ? "Following..." : "Follow Strategy"}
-      </button>
+      <div className="strategyActions">
+        <button disabled={isBusy} onClick={() => onFollow(strategy)}>
+          {followPending ? "Following..." : "Follow Strategy"}
+        </button>
+        <button className="ghostAction" disabled={isBusy} onClick={() => onQueueTrigger(strategy)}>
+          {triggerPending ? "Queueing..." : "Queue Trigger"}
+        </button>
+      </div>
     </article>
   );
 };

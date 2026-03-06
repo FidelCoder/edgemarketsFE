@@ -2,6 +2,9 @@ import { apiBaseUrl } from "./config";
 import {
   ApiEnvelope,
   AuditLog,
+  AuditLogQuery,
+  AuthSession,
+  CreateTriggerJobPayload,
   CreateStrategyPayload,
   Follow,
   FollowStrategyPayload,
@@ -9,7 +12,8 @@ import {
   MutationResult,
   RuntimeConfig,
   StablecoinAsset,
-  Strategy
+  Strategy,
+  TriggerJob
 } from "./types";
 
 const IDEMPOTENCY_HEADER = "idempotency-key";
@@ -24,6 +28,19 @@ const buildRequest = (path: string, init?: RequestInit): Request => {
     },
     cache: "no-store"
   });
+};
+
+const toQueryString = (query: Record<string, string | number | undefined>): string => {
+  const params = new URLSearchParams();
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+
+  const serialized = params.toString();
+  return serialized ? `?${serialized}` : "";
 };
 
 const generateIdempotencyKey = (): string => {
@@ -96,6 +113,14 @@ const requestMutation = async <T>(
   };
 };
 
+const requestWithAuth = async <T>(path: string, sessionToken: string): Promise<T> => {
+  return request<T>(path, {
+    headers: {
+      Authorization: `Bearer ${sessionToken}`
+    }
+  });
+};
+
 export const edgeApi = {
   listMarkets: (): Promise<Market[]> => request<Market[]>("/api/markets"),
 
@@ -121,7 +146,40 @@ export const edgeApi = {
       idempotencyKey
     ),
 
+  createTriggerJob: (
+    payload: CreateTriggerJobPayload,
+    idempotencyKey?: string
+  ): Promise<MutationResult<TriggerJob>> =>
+    requestMutation<TriggerJob>("/api/trigger-jobs", payload, idempotencyKey),
+
   listUserFollows: (userId: string): Promise<Follow[]> => request<Follow[]>(`/api/users/${userId}/follows`),
 
-  listAuditLogs: (limit = 40): Promise<AuditLog[]> => request<AuditLog[]>(`/api/audit-logs?limit=${limit}`)
+  listAuditLogs: (query: AuditLogQuery = {}): Promise<AuditLog[]> =>
+    request<AuditLog[]>(
+      `/api/audit-logs${toQueryString({
+        actorId: query.actorId,
+        entityType: query.entityType,
+        limit: query.limit ?? 40
+      })}`
+    ),
+
+  createAuthSession: (walletAddress: string, client: "web" | "extension" = "web"): Promise<AuthSession> =>
+    request<AuthSession>("/api/auth/sessions", {
+      method: "POST",
+      body: JSON.stringify({ walletAddress, client })
+    }),
+
+  getCurrentSession: (sessionToken: string): Promise<AuthSession> =>
+    requestWithAuth<AuthSession>("/api/auth/sessions/me", sessionToken),
+
+  requestSessionHandoff: (
+    sessionToken: string
+  ): Promise<{ handoffCode: string; expiresAt: string }> =>
+    requestWithAuth<{ handoffCode: string; expiresAt: string }>("/api/auth/handoff/request", sessionToken),
+
+  consumeSessionHandoff: (handoffCode: string): Promise<AuthSession> =>
+    request<AuthSession>("/api/auth/handoff/consume", {
+      method: "POST",
+      body: JSON.stringify({ handoffCode })
+    })
 };

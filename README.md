@@ -26,9 +26,11 @@ extension/
 - Load live strategies and markets
 - Create a strategy
 - Follow a strategy with risk caps and funding stablecoin selection
+- Queue trigger jobs from web and extension overlays
 - View user follows and total allocation
 - Inspect live audit events from backend execution lifecycle
 - Use idempotent mutation keys for write safety (web + extension)
+- Bind extension identity to web wallet session with handoff code
 
 ## Execution Phases (Frontend + Extension)
 ### Phase 1: Core Web App (done)
