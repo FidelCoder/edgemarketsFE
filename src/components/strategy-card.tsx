@@ -6,6 +6,7 @@ interface StrategyCardProps {
   strategy: Strategy;
   followPending: boolean;
   triggerPending: boolean;
+  alreadyFollowing: boolean;
   onFollow: (strategy: Strategy) => void;
   onQueueTrigger: (strategy: Strategy) => void;
 }
@@ -14,6 +15,7 @@ export const StrategyCard = ({
   strategy,
   followPending,
   triggerPending,
+  alreadyFollowing,
   onFollow,
   onQueueTrigger
 }: StrategyCardProps) => {
@@ -62,8 +64,8 @@ export const StrategyCard = ({
       </div>
 
       <div className="strategyActions">
-        <button disabled={isBusy} onClick={() => onFollow(strategy)}>
-          {followPending ? "Following..." : "Follow Strategy"}
+        <button disabled={isBusy || alreadyFollowing} onClick={() => onFollow(strategy)}>
+          {alreadyFollowing ? "Already Following" : followPending ? "Following..." : "Follow Strategy"}
         </button>
         <button className="ghostAction" disabled={isBusy} onClick={() => onQueueTrigger(strategy)}>
           {triggerPending ? "Queueing..." : "Queue Trigger"}

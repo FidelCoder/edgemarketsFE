@@ -56,6 +56,19 @@ const shortWallet = (value: string | null): string => {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
+const toCreatorHandle = (wallet: string | null, fallbackUserId: string): string => {
+  if (wallet) {
+    return `wallet_${wallet.slice(2, 10)}`.toLowerCase();
+  }
+
+  const fallback = fallbackUserId
+    .replace("wallet:", "wallet_")
+    .replace(/[^a-zA-Z0-9_]/g, "_")
+    .slice(0, 24);
+
+  return fallback.length >= 2 ? fallback : "edgetrader";
+};
+
 const defaultAuditFilters: AuditFilterState = {
   actorId: "",
   entityType: "all",
@@ -90,6 +103,14 @@ export const EdgeDashboard = () => {
   const totalAllocation = useMemo(() => {
     return follows.reduce((sum, follow) => sum + follow.maxMarketExposureUsd, 0);
   }, [follows]);
+
+  const followedStrategyIds = useMemo(() => {
+    return new Set(follows.map((follow) => follow.strategyId));
+  }, [follows]);
+
+  const suggestedCreatorHandle = useMemo(() => {
+    return toCreatorHandle(authSession?.walletAddress ?? connectedWallet, userId);
+  }, [authSession?.walletAddress, connectedWallet, userId]);
 
   const toAuditQuery = (filters: AuditFilterState) => {
     return {
@@ -234,6 +255,11 @@ export const EdgeDashboard = () => {
   };
 
   const handleFollowStrategy = async (strategy: Strategy) => {
+    if (followedStrategyIds.has(strategy.id)) {
+      setStatusMessage(`Already following ${strategy.name}.`);
+      return;
+    }
+
     setFollowPendingId(strategy.id);
     setErrorMessage(null);
 
@@ -254,7 +280,13 @@ export const EdgeDashboard = () => {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not follow strategy.";
-      setErrorMessage(message);
+
+      if (message.toLowerCase().includes("already follow")) {
+        setStatusMessage(`Already following ${strategy.name}.`);
+        await loadDashboard(userId, auditFilters);
+      } else {
+        setErrorMessage(message);
+      }
     } finally {
       setFollowPendingId(null);
     }
@@ -312,7 +344,10 @@ export const EdgeDashboard = () => {
       await loadDashboard(session.userId, auditFilters);
       setStatusMessage(`Wallet connected: ${shortWallet(session.walletAddress)}.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Wallet connection failed.";
+      const rawMessage = error instanceof Error ? error.message : "Wallet connection failed.";
+      const message = rawMessage.includes("MetaMask extension not found")
+        ? "Wallet extension is missing in this browser profile. Install/enable MetaMask and reload."
+        : rawMessage;
       setErrorMessage(message);
     } finally {
       setIsWalletConnecting(false);
@@ -445,7 +480,12 @@ export const EdgeDashboard = () => {
 
       <section className="workspaceGrid">
         <div className="mainColumn">
-          <CreateStrategyForm markets={markets} pending={isCreating} onCreate={handleCreateStrategy} />
+          <CreateStrategyForm
+            markets={markets}
+            pending={isCreating}
+            defaultCreatorHandle={suggestedCreatorHandle}
+            onCreate={handleCreateStrategy}
+          />
 
           <section className="strategyGrid">
             {strategies.map((strategy) => (
@@ -454,6 +494,7 @@ export const EdgeDashboard = () => {
                 strategy={strategy}
                 followPending={followPendingId === strategy.id}
                 triggerPending={triggerPendingId === strategy.id}
+                alreadyFollowing={followedStrategyIds.has(strategy.id)}
                 onFollow={handleFollowStrategy}
                 onQueueTrigger={handleQueueTriggerJob}
               />

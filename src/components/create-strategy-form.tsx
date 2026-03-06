@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CreateStrategyPayload, Market } from "@/lib/types";
 
 interface CreateStrategyFormProps {
   markets: Market[];
   pending: boolean;
+  defaultCreatorHandle?: string;
   onCreate: (payload: CreateStrategyPayload) => Promise<void>;
 }
 
@@ -31,9 +32,31 @@ const initialState: CreateStrategyFormState = {
   creatorHandle: ""
 };
 
-export const CreateStrategyForm = ({ markets, pending, onCreate }: CreateStrategyFormProps) => {
+export const CreateStrategyForm = ({
+  markets,
+  pending,
+  defaultCreatorHandle,
+  onCreate
+}: CreateStrategyFormProps) => {
   const [values, setValues] = useState(initialState);
   const defaultMarketId = useMemo(() => markets[0]?.id ?? "", [markets]);
+
+  useEffect(() => {
+    if (!defaultCreatorHandle) {
+      return;
+    }
+
+    setValues((current) => {
+      if (current.creatorHandle.trim().length > 0) {
+        return current;
+      }
+
+      return {
+        ...current,
+        creatorHandle: defaultCreatorHandle.slice(0, 24)
+      };
+    });
+  }, [defaultCreatorHandle]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,6 +90,7 @@ export const CreateStrategyForm = ({ markets, pending, onCreate }: CreateStrateg
         Strategy Name
         <input
           required
+          maxLength={70}
           value={values.name}
           onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
           placeholder="Fed Momentum Reversal"
@@ -77,6 +101,7 @@ export const CreateStrategyForm = ({ markets, pending, onCreate }: CreateStrateg
         Description
         <textarea
           required
+          maxLength={240}
           value={values.description}
           onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
           placeholder="What triggers execution and why this has edge"
@@ -164,6 +189,8 @@ export const CreateStrategyForm = ({ markets, pending, onCreate }: CreateStrateg
           Creator Handle
           <input
             required
+            minLength={2}
+            maxLength={24}
             value={values.creatorHandle}
             onChange={(event) =>
               setValues((current) => ({ ...current, creatorHandle: event.target.value }))
