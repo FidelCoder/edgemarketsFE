@@ -6,10 +6,13 @@ import { AuthSession } from "@/lib/types";
 interface SessionHandoffPanelProps {
   session: AuthSession | null;
   pendingStart: boolean;
+  pendingConnect: boolean;
+  connectedWallet: string | null;
   pendingHandoff: boolean;
   handoffCode: string | null;
   handoffExpiresAt: string | null;
   onStartSession: (walletAddress: string) => Promise<void>;
+  onConnectWallet: () => Promise<void>;
   onGenerateHandoff: () => Promise<void>;
 }
 
@@ -38,16 +41,19 @@ const formatDate = (value: string | null): string => {
 export const SessionHandoffPanel = ({
   session,
   pendingStart,
+  pendingConnect,
+  connectedWallet,
   pendingHandoff,
   handoffCode,
   handoffExpiresAt,
   onStartSession,
+  onConnectWallet,
   onGenerateHandoff
 }: SessionHandoffPanelProps) => {
   const [walletAddress, setWalletAddress] = useState("");
   const sessionTag = useMemo(() => {
     if (!session) {
-      return "No active wallet session";
+      return "No active session";
     }
 
     return `${session.client} session`;
@@ -61,42 +67,46 @@ export const SessionHandoffPanel = ({
   return (
     <section className="panel sessionPanel">
       <div className="panelHeaderRow">
-        <h2>Wallet Session</h2>
+        <h2>Wallet</h2>
         <span className="tag">{sessionTag}</span>
       </div>
 
-      <form className="sessionForm" onSubmit={handleStartSession}>
-        <label>
-          Wallet Address
-          <input
-            value={walletAddress}
-            onChange={(event) => setWalletAddress(event.target.value.trim())}
-            placeholder="0x..."
-          />
-        </label>
-        <button type="submit" disabled={pendingStart || walletAddress.length === 0}>
-          {pendingStart ? "Starting..." : "Start Web Session"}
+      <div className="sessionActionRow">
+        <button disabled={pendingConnect || pendingStart} onClick={() => void onConnectWallet()}>
+          {pendingConnect ? "Connecting..." : session ? "Reconnect Wallet" : "Connect Wallet"}
         </button>
-      </form>
 
-      {session ? (
-        <div className="sessionMeta">
-          <span>Wallet: {shorten(session.walletAddress)}</span>
-          <span>User ID: {session.userId}</span>
-          <span>Token: {shorten(session.token)}</span>
-          <span>Last active: {formatDate(session.lastActiveAt)}</span>
-        </div>
-      ) : (
-        <p className="auditEmpty">Start a web session to generate a handoff code for your extension.</p>
-      )}
+        <button
+          className="ghostAction"
+          disabled={!session || pendingHandoff}
+          onClick={() => void onGenerateHandoff()}
+        >
+          {pendingHandoff ? "Generating..." : "Generate Handoff"}
+        </button>
+      </div>
 
-      <button
-        className="ghostAction"
-        disabled={!session || pendingHandoff}
-        onClick={() => void onGenerateHandoff()}
-      >
-        {pendingHandoff ? "Generating..." : "Generate Extension Handoff Code"}
-      </button>
+      <div className="sessionMeta">
+        <span>Injected Wallet: {connectedWallet ? shorten(connectedWallet) : "Not connected"}</span>
+        <span>Session Wallet: {session ? shorten(session.walletAddress) : "Not active"}</span>
+        <span>User ID: {session ? session.userId : "--"}</span>
+      </div>
+
+      <details className="manualSession">
+        <summary>Manual Session Start</summary>
+        <form className="sessionForm" onSubmit={handleStartSession}>
+          <label>
+            Wallet Address
+            <input
+              value={walletAddress}
+              onChange={(event) => setWalletAddress(event.target.value.trim())}
+              placeholder="0x..."
+            />
+          </label>
+          <button type="submit" disabled={pendingStart || walletAddress.length === 0}>
+            {pendingStart ? "Starting..." : "Start Session"}
+          </button>
+        </form>
+      </details>
 
       <div className="handoffMeta">
         <span>Handoff Code: {handoffCode ?? "--"}</span>

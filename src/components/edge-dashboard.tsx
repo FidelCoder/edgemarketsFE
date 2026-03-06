@@ -19,6 +19,19 @@ import { FollowedStrategies } from "./followed-strategies";
 import { SessionHandoffPanel } from "./session-handoff-panel";
 import { StrategyCard } from "./strategy-card";
 
+interface EthereumProvider {
+  request: (args: {
+    method: string;
+    params?: unknown[] | Record<string, unknown>;
+  }) => Promise<unknown>;
+}
+
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider;
+  }
+}
+
 const defaultUserId = "trader-demo";
 const webSessionStorageKey = "edge.web.session.token";
 
@@ -29,6 +42,18 @@ const generateMutationKey = (scope: string): string => {
 
   const randomSegment = Math.random().toString(36).slice(2, 14);
   return `web:${scope}:${Date.now().toString(36)}:${randomSegment}`;
+};
+
+const shortWallet = (value: string | null): string => {
+  if (!value) {
+    return "";
+  }
+
+  if (value.length < 12) {
+    return value;
+  }
+
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
 const defaultAuditFilters: AuditFilterState = {
@@ -45,6 +70,7 @@ export const EdgeDashboard = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [follows, setFollows] = useState<Follow[]>([]);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [handoffCode, setHandoffCode] = useState<string | null>(null);
   const [handoffExpiresAt, setHandoffExpiresAt] = useState<string | null>(null);
   const [userId, setUserId] = useState(defaultUserId);
@@ -54,10 +80,11 @@ export const EdgeDashboard = () => {
   const [isAuditLoading, setIsAuditLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isSessionPending, setIsSessionPending] = useState(false);
+  const [isWalletConnecting, setIsWalletConnecting] = useState(false);
   const [isHandoffPending, setIsHandoffPending] = useState(false);
   const [followPendingId, setFollowPendingId] = useState<string | null>(null);
   const [triggerPendingId, setTriggerPendingId] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Loading EdgeMarkets...");
+  const [statusMessage, setStatusMessage] = useState("Loading EdgeMarkets order desk...");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const totalAllocation = useMemo(() => {
@@ -101,7 +128,7 @@ export const EdgeDashboard = () => {
       setAuditLogs(nextAuditLogs);
       setAuditFilters(filters);
       setStatusMessage(
-        `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} using ${nextRuntime.storeProvider}. Worker ${nextRuntime.triggerWorkerEnabled ? "on" : "off"} (${nextRuntime.triggerWorkerIntervalMs}ms).`
+        `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} (${nextRuntime.storeProvider})`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not load marketplace data.";
@@ -112,6 +139,38 @@ export const EdgeDashboard = () => {
     }
   };
 
+  const requestWalletConnection = async (): Promise<string> => {
+    if (typeof window === "undefined" || !window.ethereum) {
+      throw new Error("No wallet found. Install MetaMask or another injected Ethereum wallet.");
+    }
+
+    const accounts = (await window.ethereum.request({
+      method: "eth_requestAccounts"
+    })) as string[];
+
+    const first = accounts[0];
+
+    if (!first) {
+      throw new Error("Wallet connected but no account was returned.");
+    }
+
+    return first;
+  };
+
+  const createWebSession = async (walletAddress: string): Promise<AuthSession> => {
+    const session = await edgeApi.createAuthSession(walletAddress, "web");
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(webSessionStorageKey, session.token);
+    }
+
+    setAuthSession(session);
+    setConnectedWallet(session.walletAddress);
+    setUserId(session.userId);
+
+    return session;
+  };
+
   useEffect(() => {
     void loadDashboard(defaultUserId);
   }, []);
@@ -119,6 +178,23 @@ export const EdgeDashboard = () => {
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
+    }
+
+    const provider = window.ethereum;
+
+    if (provider) {
+      provider
+        .request({ method: "eth_accounts" })
+        .then((accountsRaw) => {
+          const accounts = accountsRaw as string[];
+
+          if (accounts[0]) {
+            setConnectedWallet(accounts[0]);
+          }
+        })
+        .catch(() => {
+          // Ignore passive wallet account lookup failures.
+        });
     }
 
     const storedToken = window.localStorage.getItem(webSessionStorageKey);
@@ -131,6 +207,7 @@ export const EdgeDashboard = () => {
       .getCurrentSession(storedToken)
       .then((session) => {
         setAuthSession(session);
+        setConnectedWallet(session.walletAddress);
         setUserId(session.userId);
       })
       .catch(() => {
@@ -146,7 +223,7 @@ export const EdgeDashboard = () => {
       const mutation = await edgeApi.createStrategy(payload, generateMutationKey("strategy-create"));
       await loadDashboard(userId, auditFilters);
       setStatusMessage(
-        `Strategy published successfully (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 16)}...` : ""}).`
+        `Strategy published (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 14)}...` : ""}).`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create strategy.";
@@ -173,7 +250,7 @@ export const EdgeDashboard = () => {
       );
       await loadDashboard(userId, auditFilters);
       setStatusMessage(
-        `You are now following ${strategy.name} (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 16)}...` : ""}).`
+        `Followed ${strategy.name} (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 14)}...` : ""}).`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not follow strategy.";
@@ -200,9 +277,7 @@ export const EdgeDashboard = () => {
       );
 
       await loadDashboard(userId, auditFilters);
-      setStatusMessage(
-        `Trigger queued for ${strategy.name} (${mutation.idempotencyStatus}${mutation.data.status ? `:${mutation.data.status}` : ""}).`
-      );
+      setStatusMessage(`Trigger queued for ${strategy.name} (${mutation.data.status}).`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not queue trigger job.";
       setErrorMessage(message);
@@ -216,21 +291,31 @@ export const EdgeDashboard = () => {
     setErrorMessage(null);
 
     try {
-      const session = await edgeApi.createAuthSession(walletAddress, "web");
-
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(webSessionStorageKey, session.token);
-      }
-
-      setAuthSession(session);
-      setUserId(session.userId);
+      const session = await createWebSession(walletAddress);
       await loadDashboard(session.userId, auditFilters);
-      setStatusMessage(`Web session started for ${session.userId}.`);
+      setStatusMessage(`Wallet session active for ${shortWallet(session.walletAddress)}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not start web session.";
       setErrorMessage(message);
     } finally {
       setIsSessionPending(false);
+    }
+  };
+
+  const handleConnectWallet = async () => {
+    setIsWalletConnecting(true);
+    setErrorMessage(null);
+
+    try {
+      const walletAddress = await requestWalletConnection();
+      const session = await createWebSession(walletAddress);
+      await loadDashboard(session.userId, auditFilters);
+      setStatusMessage(`Wallet connected: ${shortWallet(session.walletAddress)}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Wallet connection failed.";
+      setErrorMessage(message);
+    } finally {
+      setIsWalletConnecting(false);
     }
   };
 
@@ -247,7 +332,7 @@ export const EdgeDashboard = () => {
       setHandoffCode(handoff.handoffCode);
       setHandoffExpiresAt(handoff.expiresAt);
       await loadAuditLogs(auditFilters);
-      setStatusMessage(`Handoff code generated (${handoff.handoffCode}).`);
+      setStatusMessage(`Extension handoff code ready: ${handoff.handoffCode}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not generate handoff code.";
       setErrorMessage(message);
@@ -262,7 +347,7 @@ export const EdgeDashboard = () => {
 
     try {
       await loadAuditLogs(filters);
-      setStatusMessage("Audit filters applied.");
+      setStatusMessage("Audit filters updated.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not load audit logs.";
       setErrorMessage(message);
@@ -280,35 +365,37 @@ export const EdgeDashboard = () => {
     await loadDashboard(userId, auditFilters);
   };
 
+  const walletButtonLabel = isWalletConnecting
+    ? "Connecting..."
+    : authSession
+      ? `Connected ${shortWallet(authSession.walletAddress)}`
+      : "Connect Wallet";
+
   return (
     <div className="dashboard">
-      <section className="hero panel">
-        <div>
+      <header className="panel topBar">
+        <div className="brandBlock">
           <p className="eyebrow">EdgeMarkets</p>
-          <h1>AI Conditional Strategy Market for Polymarket Traders</h1>
-          <p>
-            Discover live strategies, create your own AI triggers, and follow active traders with
-            transparent risk limits.
-          </p>
+          <h1>Prediction Order Desk</h1>
           <p className="runtimeText">
-            Runtime:{" "}
             {runtime
-              ? `${runtime.networkMode}/${runtime.executionMode} (${runtime.polygonNetwork}) ${runtime.storeProvider}`
-              : "--"}
+              ? `${runtime.networkMode}/${runtime.executionMode} • ${runtime.polygonNetwork} • ${runtime.storeProvider}`
+              : "Bootstrapping runtime..."}
           </p>
         </div>
 
-        <div className="heroActions">
-          <label>
-            Active User ID
+        <div className="topBarControls">
+          <label className="controlField">
+            Trader ID
             <input
               value={userId}
               onChange={(event) => setUserId(event.target.value)}
               placeholder="trader-demo"
             />
           </label>
-          <label>
-            Funding Stablecoin
+
+          <label className="controlField">
+            Stablecoin
             <select
               value={fundingStablecoin}
               onChange={(event) => setFundingStablecoin(event.target.value as StablecoinSymbol)}
@@ -316,16 +403,20 @@ export const EdgeDashboard = () => {
               {stablecoins.map((coin) => (
                 <option key={coin.symbol} value={coin.symbol}>
                   {coin.symbol}
-                  {coin.conversionRequired ? " (auto-convert to USDC)" : ""}
                 </option>
               ))}
             </select>
           </label>
-          <button onClick={handleRefreshPortfolio} disabled={isBootstrapping}>
-            {isBootstrapping ? "Refreshing..." : "Load Portfolio"}
+
+          <button className="ghostAction" onClick={handleRefreshPortfolio} disabled={isBootstrapping}>
+            {isBootstrapping ? "Refreshing..." : "Refresh"}
+          </button>
+
+          <button onClick={() => void handleConnectWallet()} disabled={isWalletConnecting || isSessionPending}>
+            {walletButtonLabel}
           </button>
         </div>
-      </section>
+      </header>
 
       <section className="statsRow">
         <article className="panel statItem">
@@ -337,54 +428,63 @@ export const EdgeDashboard = () => {
           <strong>{markets.length}</strong>
         </article>
         <article className="panel statItem">
-          <span>Active Follows</span>
+          <span>Follows</span>
           <strong>{follows.length}</strong>
         </article>
         <article className="panel statItem">
-          <span>Supported Stables</span>
+          <span>Stablecoins</span>
           <strong>{stablecoins.length}</strong>
         </article>
         <article className="panel statItem">
-          <span>Allocated USD</span>
+          <span>Exposure</span>
           <strong>${totalAllocation.toLocaleString()}</strong>
         </article>
       </section>
 
       {errorMessage ? <p className="errorText">{errorMessage}</p> : <p className="statusText">{statusMessage}</p>}
 
-      <SessionHandoffPanel
-        session={authSession}
-        pendingStart={isSessionPending}
-        pendingHandoff={isHandoffPending}
-        handoffCode={handoffCode}
-        handoffExpiresAt={handoffExpiresAt}
-        onStartSession={handleStartWebSession}
-        onGenerateHandoff={handleGenerateHandoff}
-      />
+      <section className="workspaceGrid">
+        <div className="mainColumn">
+          <CreateStrategyForm markets={markets} pending={isCreating} onCreate={handleCreateStrategy} />
 
-      <CreateStrategyForm markets={markets} pending={isCreating} onCreate={handleCreateStrategy} />
+          <section className="strategyGrid">
+            {strategies.map((strategy) => (
+              <StrategyCard
+                key={strategy.id}
+                strategy={strategy}
+                followPending={followPendingId === strategy.id}
+                triggerPending={triggerPendingId === strategy.id}
+                onFollow={handleFollowStrategy}
+                onQueueTrigger={handleQueueTriggerJob}
+              />
+            ))}
+          </section>
+        </div>
 
-      <FollowedStrategies follows={follows} userId={userId} />
-
-      <AuditFeed
-        logs={auditLogs}
-        loading={isAuditLoading}
-        filters={auditFilters}
-        onApplyFilters={handleApplyAuditFilters}
-        onRefresh={handleRefreshAudit}
-      />
-
-      <section className="strategyGrid">
-        {strategies.map((strategy) => (
-          <StrategyCard
-            key={strategy.id}
-            strategy={strategy}
-            followPending={followPendingId === strategy.id}
-            triggerPending={triggerPendingId === strategy.id}
-            onFollow={handleFollowStrategy}
-            onQueueTrigger={handleQueueTriggerJob}
+        <aside className="sideColumn">
+          <SessionHandoffPanel
+            session={authSession}
+            pendingStart={isSessionPending}
+            pendingConnect={isWalletConnecting}
+            connectedWallet={connectedWallet}
+            pendingHandoff={isHandoffPending}
+            handoffCode={handoffCode}
+            handoffExpiresAt={handoffExpiresAt}
+            onStartSession={handleStartWebSession}
+            onConnectWallet={handleConnectWallet}
+            onGenerateHandoff={handleGenerateHandoff}
           />
-        ))}
+
+          <FollowedStrategies follows={follows} userId={userId} />
+
+          <AuditFeed
+            logs={auditLogs}
+            loading={isAuditLoading}
+            filters={auditFilters}
+            onApplyFilters={handleApplyAuditFilters}
+            onRefresh={handleRefreshAudit}
+          />
+        </aside>
       </section>
     </div>
   );
