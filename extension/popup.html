@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EdgeMarkets</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header>
+        <p class="eyebrow">EdgeMarkets</p>
+        <h1>Testnet Extension</h1>
+      </header>
+
+      <label>
+        Backend URL
+        <input id="apiBaseUrl" type="url" placeholder="http://localhost:4000" />
+      </label>
+
+      <label>
+        Trader ID
+        <input id="userId" type="text" placeholder="trader-demo" />
+      </label>
+
+      <label>
+        Funding Stablecoin
+        <select id="fundingStablecoin">
+          <option value="USDC">USDC</option>
+          <option value="USDT">USDT</option>
+          <option value="DAI">DAI</option>
+        </select>
+      </label>
+
+      <button id="saveSettings">Save Settings</button>
+      <button id="checkRuntime" class="ghost">Check Runtime</button>
+      <p id="status" class="status"></p>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

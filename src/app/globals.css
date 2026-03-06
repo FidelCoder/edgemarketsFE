@@ -1,0 +1,317 @@
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --panel-strong: #e9eef5;
+  --text: #0f172a;
+  --text-muted: #51607a;
+  --accent: #0b6cff;
+  --accent-soft: #dce9ff;
+  --ok: #0f9d58;
+  --danger: #c2410c;
+  --border: #d9e1ec;
+  --shadow: 0 10px 30px rgba(13, 31, 64, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 80% 0%, #e6f0ff 0%, transparent 42%),
+    radial-gradient(circle at 5% 90%, #edf9f4 0%, transparent 40%),
+    var(--bg);
+}
+
+.pageShell {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.hero {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+}
+
+.hero h1 {
+  margin: 0.25rem 0 0.75rem;
+  font-size: clamp(1.7rem, 2.8vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.runtimeText {
+  margin-top: 0.65rem !important;
+  font-size: 0.85rem;
+  color: #1a4fa9 !important;
+  font-weight: 600;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+.heroActions {
+  background: var(--panel-strong);
+  border-radius: 14px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.heroActions label,
+form label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #c4cfdd;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  color: var(--text);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button {
+  border: 0;
+  border-radius: 11px;
+  padding: 0.66rem 0.95rem;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.panelHeaderRow h2,
+.panelHeaderRow h3 {
+  margin: 0;
+}
+
+.tag {
+  background: var(--accent-soft);
+  color: #114db3;
+  border-radius: 999px;
+  padding: 0.22rem 0.62rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+}
+
+.statItem {
+  padding: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.statItem span {
+  color: var(--text-muted);
+  font-size: 0.87rem;
+}
+
+.statItem strong {
+  font-size: 1.35rem;
+}
+
+.formPanel {
+  padding: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.inputGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.followedPanel {
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.followList {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.followItem {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.followItem strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.followItem p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.followMeta {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: #2b3e60;
+}
+
+.strategyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.strategyCard {
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.strategyCard p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.metricGrid div,
+.marketContext div {
+  background: #f8fafc;
+  border: 1px solid #ebf0f7;
+  border-radius: 10px;
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.metricGrid span,
+.marketContext span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.marketContext {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.statusText,
+.errorText {
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: 11px;
+  font-size: 0.92rem;
+}
+
+.statusText {
+  background: #e8f7ef;
+  color: var(--ok);
+}
+
+.errorText {
+  background: #ffe8de;
+  color: var(--danger);
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .statsRow,
+  .strategyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .inputGrid,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+}

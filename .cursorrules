@@ -1,0 +1,10 @@
+# EdgeMarkets Frontend Execution Rules
+
+- Keep each source file under 550 LOC.
+- Use Next.js App Router + TypeScript strict mode.
+- Keep UI in focused components under `src/components`.
+- Keep API calls in `src/lib/api.ts` only.
+- Keep extension logic isolated under `extension/` (popup, background, content).
+- Use clear names for handlers (`handleCreateStrategy`, `handleFollowStrategy`).
+- Keep page UX fast: optimistic status updates and visible loading states.
+- Avoid redundant docs and duplicate style systems.

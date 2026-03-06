@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "EdgeMarkets Overlay",
+  "version": "0.1.0",
+  "description": "Open and follow EdgeMarkets AI strategies directly on Polymarket market pages.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://polymarket.com/*",
+    "https://*.polymarket.com/*",
+    "http://localhost:4000/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "EdgeMarkets",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://polymarket.com/*", "https://*.polymarket.com/*"],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

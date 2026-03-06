@@ -1,0 +1,196 @@
+#edge-markets-extension-root {
+  all: initial;
+}
+
+.edge-launcher {
+  all: unset;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483646;
+  background: linear-gradient(140deg, #0b63ff, #2f88ff);
+  color: #ffffff;
+  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(12, 58, 140, 0.34);
+  cursor: pointer;
+}
+
+.edge-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(380px, 92vw);
+  height: 100vh;
+  z-index: 2147483647;
+  background: #f5f8ff;
+  border-left: 1px solid #d6dff0;
+  box-shadow: -8px 0 24px rgba(17, 35, 71, 0.18);
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
+  gap: 10px;
+  overflow: hidden;
+  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
+  color: #0f172a;
+}
+
+.edge-hidden {
+  display: none;
+}
+
+.edge-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edge-eyebrow {
+  margin: 0;
+  color: #1764ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.edge-panel-header h2 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.edge-close-btn,
+.edge-refresh-btn,
+.edge-follow-btn,
+.edge-simulate-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.edge-close-btn,
+.edge-refresh-btn,
+.edge-simulate-btn {
+  background: #dfe9ff;
+  color: #1d469f;
+}
+
+.edge-follow-btn {
+  background: #1162ff;
+  color: #fff;
+}
+
+.edge-close-btn:disabled,
+.edge-refresh-btn:disabled,
+.edge-follow-btn:disabled,
+.edge-simulate-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.edge-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.edge-runtime-tag {
+  background: #ebf1ff;
+  color: #203f86;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.edge-account-line {
+  margin: 0;
+  font-size: 12px;
+  color: #314267;
+}
+
+.edge-status-line {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.edge-status-line.edge-ok {
+  background: #e7f7ee;
+  color: #0e8c4f;
+}
+
+.edge-status-line.edge-error {
+  background: #ffe8df;
+  color: #c2471f;
+}
+
+.edge-strategy-list {
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.edge-card {
+  background: #ffffff;
+  border: 1px solid #d7e1f0;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.edge-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.edge-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #30405f;
+  line-height: 1.4;
+}
+
+.edge-card .edge-market {
+  color: #1b2d50;
+  font-weight: 600;
+}
+
+.edge-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edge-meta span {
+  background: #eff4ff;
+  color: #24498e;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.edge-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edge-empty {
+  margin: 0;
+  color: #4b5f84;
+  font-size: 13px;
+}
