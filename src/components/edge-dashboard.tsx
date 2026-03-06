@@ -53,7 +53,7 @@ export const EdgeDashboard = () => {
       setRuntime(nextRuntime);
       setFollows(nextFollows);
       setStatusMessage(
-        `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} using ${nextRuntime.storeProvider}.`
+        `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} using ${nextRuntime.storeProvider}. Worker ${nextRuntime.triggerWorkerEnabled ? "on" : "off"} (${nextRuntime.triggerWorkerIntervalMs}ms).`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not load marketplace data.";

@@ -67,6 +67,9 @@ export interface RuntimeConfig {
   polymarketEnvironment: string;
   executionMode: ExecutionMode;
   storeProvider: StoreProvider;
+  triggerWorkerEnabled: boolean;
+  triggerWorkerIntervalMs: number;
+  triggerWorkerBatchSize: number;
   supportedStablecoins: StablecoinSymbol[];
 }
 
