@@ -144,7 +144,7 @@
 
       setState({
         pendingStrategyId: null,
-        notice: `Now following ${response.strategy.name} as ${response.settings.userId}.`
+        notice: `Now following ${response.strategy.name} as ${response.settings.userId} (${response.idempotencyStatus}).`
       });
 
       await loadPanelData();

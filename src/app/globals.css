@@ -233,6 +233,63 @@ button:disabled {
   color: #2b3e60;
 }
 
+.auditPanel {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auditEmpty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.auditList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auditItem {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  display: grid;
+  gap: 0.35rem;
+  background: #fbfcff;
+}
+
+.auditItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: baseline;
+}
+
+.auditItemTop strong {
+  font-size: 0.9rem;
+  color: #1b3b78;
+}
+
+.auditItemTop span {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.auditItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.auditItemMeta span {
+  font-size: 0.8rem;
+  color: #2b3e60;
+  background: #f3f7ff;
+  border: 1px solid #dde7fb;
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+}
+
 .strategyGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

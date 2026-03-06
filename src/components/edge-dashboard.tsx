@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { edgeApi } from "@/lib/api";
 import {
+  AuditLog,
   CreateStrategyPayload,
   Follow,
   Market,
@@ -11,21 +12,33 @@ import {
   StablecoinSymbol,
   Strategy
 } from "@/lib/types";
+import { AuditFeed } from "./audit-feed";
 import { CreateStrategyForm } from "./create-strategy-form";
 import { FollowedStrategies } from "./followed-strategies";
 import { StrategyCard } from "./strategy-card";
 
 const defaultUserId = "trader-demo";
 
+const generateMutationKey = (scope: string): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `web:${scope}:${crypto.randomUUID()}`;
+  }
+
+  const randomSegment = Math.random().toString(36).slice(2, 14);
+  return `web:${scope}:${Date.now().toString(36)}:${randomSegment}`;
+};
+
 export const EdgeDashboard = () => {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [stablecoins, setStablecoins] = useState<StablecoinAsset[]>([]);
   const [runtime, setRuntime] = useState<RuntimeConfig | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [follows, setFollows] = useState<Follow[]>([]);
   const [userId, setUserId] = useState(defaultUserId);
   const [fundingStablecoin, setFundingStablecoin] = useState<StablecoinSymbol>("USDC");
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isAuditLoading, setIsAuditLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [followPendingId, setFollowPendingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("Loading EdgeMarkets...");
@@ -37,21 +50,25 @@ export const EdgeDashboard = () => {
 
   const loadDashboard = async (targetUserId: string) => {
     setErrorMessage(null);
+    setIsAuditLoading(true);
 
     try {
-      const [nextStrategies, nextMarkets, nextStablecoins, nextRuntime, nextFollows] = await Promise.all([
-        edgeApi.listStrategies(),
-        edgeApi.listMarkets(),
-        edgeApi.listStablecoins(),
-        edgeApi.getRuntimeConfig(),
-        edgeApi.listUserFollows(targetUserId)
-      ]);
+      const [nextStrategies, nextMarkets, nextStablecoins, nextRuntime, nextFollows, nextAuditLogs] =
+        await Promise.all([
+          edgeApi.listStrategies(),
+          edgeApi.listMarkets(),
+          edgeApi.listStablecoins(),
+          edgeApi.getRuntimeConfig(),
+          edgeApi.listUserFollows(targetUserId),
+          edgeApi.listAuditLogs(40)
+        ]);
 
       setStrategies(nextStrategies);
       setMarkets(nextMarkets);
       setStablecoins(nextStablecoins);
       setRuntime(nextRuntime);
       setFollows(nextFollows);
+      setAuditLogs(nextAuditLogs);
       setStatusMessage(
         `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} using ${nextRuntime.storeProvider}. Worker ${nextRuntime.triggerWorkerEnabled ? "on" : "off"} (${nextRuntime.triggerWorkerIntervalMs}ms).`
       );
@@ -60,6 +77,7 @@ export const EdgeDashboard = () => {
       setErrorMessage(message);
     } finally {
       setIsBootstrapping(false);
+      setIsAuditLoading(false);
     }
   };
 
@@ -72,9 +90,11 @@ export const EdgeDashboard = () => {
     setErrorMessage(null);
 
     try {
-      await edgeApi.createStrategy(payload);
+      const mutation = await edgeApi.createStrategy(payload, generateMutationKey("strategy-create"));
       await loadDashboard(userId);
-      setStatusMessage("Strategy published successfully.");
+      setStatusMessage(
+        `Strategy published successfully (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 16)}...` : ""}).`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create strategy.";
       setErrorMessage(message);
@@ -88,14 +108,20 @@ export const EdgeDashboard = () => {
     setErrorMessage(null);
 
     try {
-      await edgeApi.followStrategy(strategy.id, {
-        userId,
-        maxDailyLossUsd: Math.round(strategy.allocationUsd * 0.35),
-        maxMarketExposureUsd: strategy.allocationUsd,
-        fundingStablecoin
-      });
+      const mutation = await edgeApi.followStrategy(
+        strategy.id,
+        {
+          userId,
+          maxDailyLossUsd: Math.round(strategy.allocationUsd * 0.35),
+          maxMarketExposureUsd: strategy.allocationUsd,
+          fundingStablecoin
+        },
+        generateMutationKey(`follow-${strategy.id}`)
+      );
       await loadDashboard(userId);
-      setStatusMessage(`You are now following ${strategy.name}.`);
+      setStatusMessage(
+        `You are now following ${strategy.name} (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 16)}...` : ""}).`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not follow strategy.";
       setErrorMessage(message);
@@ -184,6 +210,8 @@ export const EdgeDashboard = () => {
       <CreateStrategyForm markets={markets} pending={isCreating} onCreate={handleCreateStrategy} />
 
       <FollowedStrategies follows={follows} userId={userId} />
+
+      <AuditFeed logs={auditLogs} loading={isAuditLoading} />
 
       <section className="strategyGrid">
         {strategies.map((strategy) => (

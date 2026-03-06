@@ -10,6 +10,18 @@ export type ExecutionMode = "simulated" | "live";
 
 export type StoreProvider = "mongodb" | "memory";
 
+export type IdempotencyStatus = "none" | "created" | "replayed";
+
+export type AuditActorType = "user" | "system" | "worker";
+
+export type AuditEntityType =
+  | "strategy"
+  | "follow"
+  | "trigger_job"
+  | "execution_log"
+  | "idempotency"
+  | "worker";
+
 export interface ApiEnvelope<T> {
   data: T | null;
   error: {
@@ -89,4 +101,21 @@ export interface FollowStrategyPayload {
   maxDailyLossUsd: number;
   maxMarketExposureUsd: number;
   fundingStablecoin: StablecoinSymbol;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  actorType: AuditActorType;
+  actorId: string;
+  entityType: AuditEntityType;
+  entityId?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface MutationResult<T> {
+  data: T;
+  idempotencyStatus: IdempotencyStatus;
+  idempotencyKey?: string;
 }

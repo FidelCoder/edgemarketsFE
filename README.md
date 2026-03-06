@@ -27,6 +27,8 @@ extension/
 - Create a strategy
 - Follow a strategy with risk caps and funding stablecoin selection
 - View user follows and total allocation
+- Inspect live audit events from backend execution lifecycle
+- Use idempotent mutation keys for write safety (web + extension)
 
 ## Execution Phases (Frontend + Extension)
 ### Phase 1: Core Web App (done)
@@ -34,10 +36,11 @@ extension/
 - `Chunk 1.2`: Marketplace create/follow/user allocation flow
 - `Chunk 1.3`: Stablecoin selector + live status UX
 
-### Phase 2: Browser Extension (next)
+### Phase 2: Browser Extension (in progress)
 - `Chunk 2.1`: Manifest V3 extension scaffold
 - `Chunk 2.2`: In-page Polymarket overlay to discover/follow strategies
 - `Chunk 2.3`: Background worker bridge to backend APIs
+- `Chunk 2.4`: Idempotent follow mutations with mutation-status feedback
 
 ### Phase 3: Production UX
 - `Chunk 3.1`: Wallet/auth handoff between web app and extension

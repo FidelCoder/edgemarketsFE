@@ -5,6 +5,8 @@ const DEFAULT_SETTINGS = {
   userId: "trader-demo",
   fundingStablecoin: "USDC"
 };
+const IDEMPOTENCY_HEADER = "idempotency-key";
+const IDEMPOTENCY_STATUS_HEADER = "idempotency-status";
 
 const getSettings = async () => {
   const stored = await chrome.storage.sync.get(SETTINGS_KEY);
@@ -28,11 +30,12 @@ const saveSettings = async (settingsPatch) => {
   return next;
 };
 
-const request = async ({ apiBaseUrl, path, method = "GET", body }) => {
+const request = async ({ apiBaseUrl, path, method = "GET", body, headers = {} }) => {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...headers
     },
     body: body ? JSON.stringify(body) : undefined
   });
@@ -44,6 +47,39 @@ const request = async ({ apiBaseUrl, path, method = "GET", body }) => {
   }
 
   return envelope.data;
+};
+
+const generateIdempotencyKey = (scope) => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `ext:${scope}:${crypto.randomUUID()}`;
+  }
+
+  const randomSegment = Math.random().toString(36).slice(2, 14);
+  return `ext:${scope}:${Date.now().toString(36)}:${randomSegment}`;
+};
+
+const requestMutation = async ({ apiBaseUrl, path, body, idempotencyKey }) => {
+  const key = idempotencyKey ?? generateIdempotencyKey("mutation");
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      [IDEMPOTENCY_HEADER]: key
+    },
+    body: JSON.stringify(body)
+  });
+
+  const envelope = await response.json();
+
+  if (!response.ok || envelope.error) {
+    throw new Error(envelope.error?.message ?? `Request failed: ${response.status}`);
+  }
+
+  return {
+    data: envelope.data,
+    idempotencyStatus: response.headers.get(IDEMPOTENCY_STATUS_HEADER) ?? "none",
+    idempotencyKey: response.headers.get(IDEMPOTENCY_HEADER) ?? key
+  };
 };
 
 const buildFollowPayload = (strategy, settings) => {
@@ -95,16 +131,18 @@ const handleFollowStrategy = async (payload) => {
     throw new Error("Strategy not found.");
   }
 
-  const followResult = await request({
+  const followResult = await requestMutation({
     apiBaseUrl: settings.apiBaseUrl,
     path: `/api/strategies/${strategy.id}/follows`,
-    method: "POST",
-    body: buildFollowPayload(strategy, settings)
+    body: buildFollowPayload(strategy, settings),
+    idempotencyKey: generateIdempotencyKey(`follow-${strategy.id}`)
   });
 
   return {
-    follow: followResult.follow,
-    strategy: followResult.strategy,
+    follow: followResult.data.follow,
+    strategy: followResult.data.strategy,
+    idempotencyStatus: followResult.idempotencyStatus,
+    idempotencyKey: followResult.idempotencyKey,
     settings
   };
 };
