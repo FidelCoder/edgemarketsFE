@@ -22,9 +22,14 @@ export type AuditEntityType =
   | "idempotency"
   | "worker"
   | "session"
-  | "handoff";
+  | "handoff"
+  | "order";
 
 export type AuthClient = "web" | "extension";
+
+export type OrderLifecycleStatus = "submitted" | "open" | "filled" | "failed" | "retried";
+
+export type PolymarketTradeStatus = "MATCHED" | "MINED" | "CONFIRMED" | "RETRYING" | "FAILED" | "UNKNOWN";
 
 export interface ApiEnvelope<T> {
   data: T | null;
@@ -41,6 +46,13 @@ export interface Market {
   noPrice: number;
   liquidityUsd: number;
   updatedAt: string;
+  slug: string;
+  icon: string | null;
+  endDate: string | null;
+  yesTokenId: string;
+  noTokenId: string;
+  orderBookEnabled: boolean;
+  negRisk: boolean;
 }
 
 export interface Strategy {
@@ -81,6 +93,10 @@ export interface RuntimeConfig {
   networkMode: NetworkMode;
   polygonNetwork: string;
   polymarketEnvironment: string;
+  polymarketHost: string;
+  polymarketGammaHost: string;
+  polymarketChainId: number;
+  polymarketMarketSource: "live" | "seed";
   executionMode: ExecutionMode;
   storeProvider: StoreProvider;
   triggerWorkerEnabled: boolean;
@@ -163,4 +179,92 @@ export interface AuthSession {
   linkedSessionId?: string;
   createdAt: string;
   lastActiveAt: string;
+}
+
+export interface AuthChallenge {
+  id: string;
+  walletAddress: string;
+  client: AuthClient;
+  nonce: string;
+  message: string;
+  issuedAt: string;
+  expiresAt: string;
+}
+
+export interface PolymarketProfile {
+  walletAddress: string;
+  proxyWalletAddress: string | null;
+  username: string | null;
+  pseudonym: string | null;
+  profileImage: string | null;
+}
+
+export interface OrderRecord {
+  id: string;
+  polymarketOrderId: string;
+  strategyId: string;
+  creatorHandle: string;
+  marketId: string;
+  userId: string;
+  walletAddress: string;
+  funderAddress: string;
+  tokenId: string;
+  outcome: "YES" | "NO";
+  action: ActionType;
+  side: "BUY" | "SELL";
+  orderType: "GTC" | "FOK" | "GTD" | "FAK";
+  price: number;
+  size: number;
+  amountUsd: number;
+  status: OrderLifecycleStatus;
+  tradeStatus: PolymarketTradeStatus;
+  transactionHashes: string[];
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  filledAt?: string;
+}
+
+export interface CreateOrderRecordPayload {
+  polymarketOrderId: string;
+  strategyId: string;
+  creatorHandle: string;
+  marketId: string;
+  userId: string;
+  walletAddress: string;
+  funderAddress: string;
+  tokenId: string;
+  outcome: "YES" | "NO";
+  action: ActionType;
+  side: "BUY" | "SELL";
+  orderType: "GTC" | "FOK" | "GTD" | "FAK";
+  price: number;
+  size: number;
+  amountUsd: number;
+  status: OrderLifecycleStatus;
+  tradeStatus: PolymarketTradeStatus;
+  transactionHashes?: string[];
+  errorMessage?: string;
+  filledAt?: string;
+}
+
+export interface CreatorPerformanceSummary {
+  creatorHandle: string;
+  strategyCount: number;
+  totalFollowers: number;
+  totalOrders: number;
+  openOrders: number;
+  filledOrders: number;
+  failedOrders: number;
+  retriedOrders: number;
+  totalVolumeUsd: number;
+  fillRate: number;
+  latestOrderAt?: string;
+}
+
+export interface OrderQuery {
+  strategyId?: string;
+  creatorHandle?: string;
+  status?: OrderLifecycleStatus;
+  limit?: number;
 }

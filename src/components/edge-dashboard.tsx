@@ -3,11 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { edgeApi } from "@/lib/api";
 import {
+  checkCollateralAllowance,
+  connectWalletAccount,
+  createLiveClobContext,
+  placeLiveStrategyOrder,
+  signAuthChallengeMessage,
+  syncLiveOrderState,
+  type LiveClobContext
+} from "@/lib/polymarket";
+import {
   AuditLog,
   AuthSession,
   CreateStrategyPayload,
   Follow,
   Market,
+  OrderRecord,
+  PolymarketProfile,
   RuntimeConfig,
   StablecoinAsset,
   StablecoinSymbol,
@@ -16,24 +27,18 @@ import {
 import { AuditFeed, AuditFilterState } from "./audit-feed";
 import { CreateStrategyForm } from "./create-strategy-form";
 import { FollowedStrategies } from "./followed-strategies";
+import { OrderLifecyclePanel } from "./order-lifecycle-panel";
 import { SessionHandoffPanel } from "./session-handoff-panel";
 import { StrategyCard } from "./strategy-card";
 
-interface EthereumProvider {
-  request: (args: {
-    method: string;
-    params?: unknown[] | Record<string, unknown>;
-  }) => Promise<unknown>;
-}
-
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
-}
-
 const defaultUserId = "trader-demo";
 const webSessionStorageKey = "edge.web.session.token";
+
+const defaultAuditFilters: AuditFilterState = {
+  actorId: "",
+  entityType: "all",
+  limit: 40
+};
 
 const generateMutationKey = (scope: string): string => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -69,10 +74,16 @@ const toCreatorHandle = (wallet: string | null, fallbackUserId: string): string 
   return fallback.length >= 2 ? fallback : "edgetrader";
 };
 
-const defaultAuditFilters: AuditFilterState = {
-  actorId: "",
-  entityType: "all",
-  limit: 40
+const toAuditQuery = (filters: AuditFilterState) => {
+  return {
+    actorId: filters.actorId.trim() || undefined,
+    entityType: filters.entityType === "all" ? undefined : filters.entityType,
+    limit: filters.limit
+  };
+};
+
+const isSyncableOrder = (order: OrderRecord): boolean => {
+  return order.status === "submitted" || order.status === "open" || order.status === "retried";
 };
 
 export const EdgeDashboard = () => {
@@ -82,8 +93,12 @@ export const EdgeDashboard = () => {
   const [runtime, setRuntime] = useState<RuntimeConfig | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [follows, setFollows] = useState<Follow[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [profile, setProfile] = useState<PolymarketProfile | null>(null);
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const [liveContext, setLiveContext] = useState<LiveClobContext | null>(null);
+  const [allowanceSummary, setAllowanceSummary] = useState<{ balance: string; allowance: string } | null>(null);
   const [handoffCode, setHandoffCode] = useState<string | null>(null);
   const [handoffExpiresAt, setHandoffExpiresAt] = useState<string | null>(null);
   const [userId, setUserId] = useState(defaultUserId);
@@ -92,11 +107,12 @@ export const EdgeDashboard = () => {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isAuditLoading, setIsAuditLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [isSessionPending, setIsSessionPending] = useState(false);
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
   const [isHandoffPending, setIsHandoffPending] = useState(false);
+  const [isOrderSyncing, setIsOrderSyncing] = useState(false);
   const [followPendingId, setFollowPendingId] = useState<string | null>(null);
   const [triggerPendingId, setTriggerPendingId] = useState<string | null>(null);
+  const [livePendingId, setLivePendingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("Loading EdgeMarkets order desk...");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -112,13 +128,7 @@ export const EdgeDashboard = () => {
     return toCreatorHandle(authSession?.walletAddress ?? connectedWallet, userId);
   }, [authSession?.walletAddress, connectedWallet, userId]);
 
-  const toAuditQuery = (filters: AuditFilterState) => {
-    return {
-      actorId: filters.actorId.trim() || undefined,
-      entityType: filters.entityType === "all" ? undefined : filters.entityType,
-      limit: filters.limit
-    };
-  };
+  const canExecuteLive = Boolean(authSession && runtime?.executionMode === "live");
 
   const loadAuditLogs = async (filters: AuditFilterState) => {
     const logs = await edgeApi.listAuditLogs(toAuditQuery(filters));
@@ -126,7 +136,21 @@ export const EdgeDashboard = () => {
     setAuditFilters(filters);
   };
 
-  const loadDashboard = async (targetUserId: string, filters: AuditFilterState = auditFilters) => {
+  const loadOrders = async (sessionToken?: string) => {
+    if (!sessionToken) {
+      setOrders([]);
+      return;
+    }
+
+    const nextOrders = await edgeApi.listOrders(sessionToken, { limit: 40 });
+    setOrders(nextOrders);
+  };
+
+  const loadDashboard = async (
+    targetUserId: string,
+    filters: AuditFilterState = auditFilters,
+    sessionToken?: string
+  ) => {
     setErrorMessage(null);
     setIsAuditLoading(true);
 
@@ -148,6 +172,7 @@ export const EdgeDashboard = () => {
       setFollows(nextFollows);
       setAuditLogs(nextAuditLogs);
       setAuditFilters(filters);
+      await loadOrders(sessionToken);
       setStatusMessage(
         `Runtime ${nextRuntime.networkMode}/${nextRuntime.executionMode} on ${nextRuntime.polygonNetwork} (${nextRuntime.storeProvider})`
       );
@@ -160,36 +185,35 @@ export const EdgeDashboard = () => {
     }
   };
 
-  const requestWalletConnection = async (): Promise<string> => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      throw new Error("No wallet found. Install MetaMask or another injected Ethereum wallet.");
+  const ensureRuntime = async (): Promise<RuntimeConfig> => {
+    if (runtime) {
+      return runtime;
     }
 
-    const accounts = (await window.ethereum.request({
-      method: "eth_requestAccounts"
-    })) as string[];
-
-    const first = accounts[0];
-
-    if (!first) {
-      throw new Error("Wallet connected but no account was returned.");
-    }
-
-    return first;
+    const nextRuntime = await edgeApi.getRuntimeConfig();
+    setRuntime(nextRuntime);
+    return nextRuntime;
   };
 
-  const createWebSession = async (walletAddress: string): Promise<AuthSession> => {
-    const session = await edgeApi.createAuthSession(walletAddress, "web");
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(webSessionStorageKey, session.token);
+  const ensureLiveSessionContext = async (): Promise<LiveClobContext> => {
+    if (!authSession) {
+      throw new Error("Connect a wallet before executing live orders.");
     }
 
-    setAuthSession(session);
-    setConnectedWallet(session.walletAddress);
-    setUserId(session.userId);
+    if (liveContext) {
+      return liveContext;
+    }
 
-    return session;
+    const nextRuntime = await ensureRuntime();
+    const nextProfile = await edgeApi.getPolymarketProfile(authSession.walletAddress);
+    const context = await createLiveClobContext(nextRuntime, authSession.walletAddress, nextProfile);
+    const allowance = await checkCollateralAllowance(context).catch(() => null);
+
+    setProfile(nextProfile);
+    setLiveContext(context);
+    setAllowanceSummary(allowance);
+
+    return context;
   };
 
   useEffect(() => {
@@ -201,23 +225,6 @@ export const EdgeDashboard = () => {
       return;
     }
 
-    const provider = window.ethereum;
-
-    if (provider) {
-      provider
-        .request({ method: "eth_accounts" })
-        .then((accountsRaw) => {
-          const accounts = accountsRaw as string[];
-
-          if (accounts[0]) {
-            setConnectedWallet(accounts[0]);
-          }
-        })
-        .catch(() => {
-          // Ignore passive wallet account lookup failures.
-        });
-    }
-
     const storedToken = window.localStorage.getItem(webSessionStorageKey);
 
     if (!storedToken) {
@@ -226,10 +233,11 @@ export const EdgeDashboard = () => {
 
     edgeApi
       .getCurrentSession(storedToken)
-      .then((session) => {
+      .then(async (session) => {
         setAuthSession(session);
         setConnectedWallet(session.walletAddress);
         setUserId(session.userId);
+        await loadDashboard(session.userId, defaultAuditFilters, session.token);
       })
       .catch(() => {
         window.localStorage.removeItem(webSessionStorageKey);
@@ -242,7 +250,7 @@ export const EdgeDashboard = () => {
 
     try {
       const mutation = await edgeApi.createStrategy(payload, generateMutationKey("strategy-create"));
-      await loadDashboard(userId, auditFilters);
+      await loadDashboard(userId, auditFilters, authSession?.token);
       setStatusMessage(
         `Strategy published (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 14)}...` : ""}).`
       );
@@ -268,31 +276,25 @@ export const EdgeDashboard = () => {
         strategy.id,
         {
           userId,
-          maxDailyLossUsd: Math.round(strategy.allocationUsd * 0.35),
+          maxDailyLossUsd: strategy.allocationUsd,
           maxMarketExposureUsd: strategy.allocationUsd,
           fundingStablecoin
         },
         generateMutationKey(`follow-${strategy.id}`)
       );
-      await loadDashboard(userId, auditFilters);
+      await loadDashboard(userId, auditFilters, authSession?.token);
       setStatusMessage(
-        `Followed ${strategy.name} (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 14)}...` : ""}).`
+        `Strategy follow saved (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 12)}...` : ""}).`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not follow strategy.";
-
-      if (message.toLowerCase().includes("already follow")) {
-        setStatusMessage(`Already following ${strategy.name}.`);
-        await loadDashboard(userId, auditFilters);
-      } else {
-        setErrorMessage(message);
-      }
+      setErrorMessage(message);
     } finally {
       setFollowPendingId(null);
     }
   };
 
-  const handleQueueTriggerJob = async (strategy: Strategy) => {
+  const handleQueueTrigger = async (strategy: Strategy) => {
     setTriggerPendingId(strategy.id);
     setErrorMessage(null);
 
@@ -307,9 +309,10 @@ export const EdgeDashboard = () => {
         },
         generateMutationKey(`trigger-${strategy.id}`)
       );
-
-      await loadDashboard(userId, auditFilters);
-      setStatusMessage(`Trigger queued for ${strategy.name} (${mutation.data.status}).`);
+      await loadDashboard(userId, auditFilters, authSession?.token);
+      setStatusMessage(
+        `Trigger job queued (${mutation.idempotencyStatus}${mutation.idempotencyKey ? `:${mutation.idempotencyKey.slice(0, 12)}...` : ""}).`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not queue trigger job.";
       setErrorMessage(message);
@@ -318,44 +321,104 @@ export const EdgeDashboard = () => {
     }
   };
 
-  const handleStartWebSession = async (walletAddress: string) => {
-    setIsSessionPending(true);
-    setErrorMessage(null);
-
-    try {
-      const session = await createWebSession(walletAddress);
-      await loadDashboard(session.userId, auditFilters);
-      setStatusMessage(`Wallet session active for ${shortWallet(session.walletAddress)}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not start web session.";
-      setErrorMessage(message);
-    } finally {
-      setIsSessionPending(false);
-    }
-  };
-
   const handleConnectWallet = async () => {
     setIsWalletConnecting(true);
     setErrorMessage(null);
 
     try {
-      const walletAddress = await requestWalletConnection();
-      const session = await createWebSession(walletAddress);
-      await loadDashboard(session.userId, auditFilters);
-      setStatusMessage(`Wallet connected: ${shortWallet(session.walletAddress)}.`);
+      const nextRuntime = await ensureRuntime();
+      const walletAddress = await connectWalletAccount();
+      const challenge = await edgeApi.createAuthChallenge(walletAddress, "web");
+      const signature = await signAuthChallengeMessage(walletAddress, challenge.message, nextRuntime);
+      const session = await edgeApi.verifyAuthChallenge(challenge.id, walletAddress, signature, "web");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(webSessionStorageKey, session.token);
+      }
+
+      setAuthSession(session);
+      setConnectedWallet(session.walletAddress);
+      setUserId(session.userId);
+      setLiveContext(null);
+      setProfile(null);
+      setAllowanceSummary(null);
+      await loadDashboard(session.userId, auditFilters, session.token);
+      setStatusMessage(`Wallet session verified for ${shortWallet(session.walletAddress)}.`);
     } catch (error) {
-      const rawMessage = error instanceof Error ? error.message : "Wallet connection failed.";
-      const message = rawMessage.includes("MetaMask extension not found")
-        ? "Wallet extension is missing in this browser profile. Install/enable MetaMask and reload."
-        : rawMessage;
+      const message = error instanceof Error ? error.message : "Could not connect wallet.";
       setErrorMessage(message);
     } finally {
       setIsWalletConnecting(false);
     }
   };
 
-  const handleGenerateHandoff = async () => {
+  const handleExecuteLive = async (strategy: Strategy) => {
     if (!authSession) {
+      setErrorMessage("Connect a wallet before executing live orders.");
+      return;
+    }
+
+    if (runtime?.executionMode !== "live") {
+      setErrorMessage("Backend runtime is not configured for live Polymarket execution.");
+      return;
+    }
+
+    setLivePendingId(strategy.id);
+    setErrorMessage(null);
+
+    try {
+      const context = await ensureLiveSessionContext();
+      const payload = await placeLiveStrategyOrder(context, strategy, authSession.userId);
+      await edgeApi.upsertOrder(authSession.token, payload);
+      await loadOrders(authSession.token);
+      setStatusMessage(`Live order submitted for ${strategy.name}: ${payload.polymarketOrderId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not execute live order.";
+      setErrorMessage(message);
+    } finally {
+      setLivePendingId(null);
+    }
+  };
+
+  const handleRefreshOrders = async () => {
+    if (!authSession) {
+      setErrorMessage("Connect a wallet to load order lifecycle.");
+      return;
+    }
+
+    setIsOrderSyncing(true);
+    setErrorMessage(null);
+
+    try {
+      let nextOrders = await edgeApi.listOrders(authSession.token, { limit: 40 });
+      const syncTargets = nextOrders.filter(isSyncableOrder);
+
+      if (syncTargets.length > 0) {
+        const context = await ensureLiveSessionContext();
+
+        await Promise.all(
+          syncTargets.map(async (order) => {
+            const syncedPayload = await syncLiveOrderState(context, order);
+            await edgeApi.upsertOrder(authSession.token, syncedPayload);
+          })
+        );
+
+        nextOrders = await edgeApi.listOrders(authSession.token, { limit: 40 });
+      }
+
+      setOrders(nextOrders);
+      setStatusMessage(`Synced ${nextOrders.length} order records.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not sync order lifecycle.";
+      setErrorMessage(message);
+    } finally {
+      setIsOrderSyncing(false);
+    }
+  };
+
+  const handleCreateHandoff = async () => {
+    if (!authSession) {
+      setErrorMessage("Connect a wallet session before creating extension handoff.");
       return;
     }
 
@@ -366,7 +429,6 @@ export const EdgeDashboard = () => {
       const handoff = await edgeApi.requestSessionHandoff(authSession.token);
       setHandoffCode(handoff.handoffCode);
       setHandoffExpiresAt(handoff.expiresAt);
-      await loadAuditLogs(auditFilters);
       setStatusMessage(`Extension handoff code ready: ${handoff.handoffCode}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not generate handoff code.";
@@ -376,110 +438,77 @@ export const EdgeDashboard = () => {
     }
   };
 
-  const handleApplyAuditFilters = async (filters: AuditFilterState) => {
-    setIsAuditLoading(true);
-    setErrorMessage(null);
-
-    try {
-      await loadAuditLogs(filters);
-      setStatusMessage("Audit filters updated.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not load audit logs.";
-      setErrorMessage(message);
-    } finally {
-      setIsAuditLoading(false);
+  const handleDisconnect = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(webSessionStorageKey);
     }
-  };
 
-  const handleRefreshAudit = async () => {
-    await handleApplyAuditFilters(auditFilters);
+    setAuthSession(null);
+    setConnectedWallet(null);
+    setProfile(null);
+    setLiveContext(null);
+    setAllowanceSummary(null);
+    setOrders([]);
+    setUserId(defaultUserId);
+    void loadDashboard(defaultUserId, auditFilters);
+    setStatusMessage("Wallet session cleared.");
   };
-
-  const handleRefreshPortfolio = async () => {
-    setIsBootstrapping(true);
-    await loadDashboard(userId, auditFilters);
-  };
-
-  const walletButtonLabel = isWalletConnecting
-    ? "Connecting..."
-    : authSession
-      ? `Connected ${shortWallet(authSession.walletAddress)}`
-      : "Connect Wallet";
 
   return (
-    <div className="dashboard">
-      <header className="panel topBar">
-        <div className="brandBlock">
-          <p className="eyebrow">EdgeMarkets</p>
-          <h1>Prediction Order Desk</h1>
-          <p className="runtimeText">
-            {runtime
-              ? `${runtime.networkMode}/${runtime.executionMode} • ${runtime.polygonNetwork} • ${runtime.storeProvider}`
-              : "Bootstrapping runtime..."}
+    <main className="edgeShell">
+      <section className="topBar panel">
+        <div>
+          <span className="eyebrow">EdgeMarkets</span>
+          <h1>Live AI Conditional Orders for Polymarket</h1>
+          <p>
+            Publish strategies, follow creators, and execute live orders through your own connected wallet.
           </p>
         </div>
 
-        <div className="topBarControls">
-          <label className="controlField">
-            Trader ID
-            <input
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
-              placeholder="trader-demo"
-            />
-          </label>
-
-          <label className="controlField">
-            Stablecoin
-            <select
-              value={fundingStablecoin}
-              onChange={(event) => setFundingStablecoin(event.target.value as StablecoinSymbol)}
-            >
-              {stablecoins.map((coin) => (
-                <option key={coin.symbol} value={coin.symbol}>
-                  {coin.symbol}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button className="ghostAction" onClick={handleRefreshPortfolio} disabled={isBootstrapping}>
-            {isBootstrapping ? "Refreshing..." : "Refresh"}
+        <div className="topBarActions">
+          <div className="walletBadge">
+            <span>Wallet</span>
+            <strong>{authSession ? shortWallet(authSession.walletAddress) : connectedWallet ? shortWallet(connectedWallet) : "Not connected"}</strong>
+          </div>
+          <div className="walletBadge">
+            <span>Mode</span>
+            <strong>{runtime ? `${runtime.executionMode}/${runtime.networkMode}` : "--"}</strong>
+          </div>
+          <button onClick={handleConnectWallet} disabled={isWalletConnecting}>
+            {authSession ? "Reconnect Wallet" : isWalletConnecting ? "Connecting..." : "Connect Wallet"}
           </button>
-
-          <button onClick={() => void handleConnectWallet()} disabled={isWalletConnecting || isSessionPending}>
-            {walletButtonLabel}
-          </button>
+          {authSession ? (
+            <button className="ghostAction" onClick={handleDisconnect}>
+              Disconnect
+            </button>
+          ) : null}
         </div>
-      </header>
+      </section>
 
-      <section className="statsRow">
-        <article className="panel statItem">
+      <section className="summaryGrid">
+        <article className="panel statCard">
           <span>Strategies</span>
           <strong>{strategies.length}</strong>
         </article>
-        <article className="panel statItem">
-          <span>Markets</span>
-          <strong>{markets.length}</strong>
-        </article>
-        <article className="panel statItem">
-          <span>Follows</span>
+        <article className="panel statCard">
+          <span>Following</span>
           <strong>{follows.length}</strong>
         </article>
-        <article className="panel statItem">
-          <span>Stablecoins</span>
-          <strong>{stablecoins.length}</strong>
-        </article>
-        <article className="panel statItem">
-          <span>Exposure</span>
+        <article className="panel statCard">
+          <span>Exposure Cap</span>
           <strong>${totalAllocation.toLocaleString()}</strong>
+        </article>
+        <article className="panel statCard">
+          <span>Live Orders</span>
+          <strong>{orders.length}</strong>
         </article>
       </section>
 
-      {errorMessage ? <p className="errorText">{errorMessage}</p> : <p className="statusText">{statusMessage}</p>}
+      {statusMessage ? <p className="statusMessage">{statusMessage}</p> : null}
+      {errorMessage ? <p className="errorBanner">{errorMessage}</p> : null}
 
-      <section className="workspaceGrid">
-        <div className="mainColumn">
+      <div className="workspaceGrid">
+        <section className="workspaceMain">
           <CreateStrategyForm
             markets={markets}
             pending={isCreating}
@@ -487,33 +516,68 @@ export const EdgeDashboard = () => {
             onCreate={handleCreateStrategy}
           />
 
-          <section className="strategyGrid">
-            {strategies.map((strategy) => (
-              <StrategyCard
-                key={strategy.id}
-                strategy={strategy}
-                followPending={followPendingId === strategy.id}
-                triggerPending={triggerPendingId === strategy.id}
-                alreadyFollowing={followedStrategyIds.has(strategy.id)}
-                onFollow={handleFollowStrategy}
-                onQueueTrigger={handleQueueTriggerJob}
-              />
-            ))}
-          </section>
-        </div>
+          <section className="panel marketPanel">
+            <div className="panelHeaderRow">
+              <div>
+                <h2>Strategy Marketplace</h2>
+                <p>{isBootstrapping ? "Loading live market strategies..." : "Trade creators and strategies against live Polymarket markets."}</p>
+              </div>
+              <select value={fundingStablecoin} onChange={(event) => setFundingStablecoin(event.target.value as StablecoinSymbol)}>
+                {stablecoins.map((asset) => (
+                  <option key={asset.symbol} value={asset.symbol}>
+                    {asset.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <aside className="sideColumn">
+            <div className="strategyGrid">
+              {strategies.map((strategy) => (
+                <StrategyCard
+                  key={strategy.id}
+                  strategy={strategy}
+                  followPending={followPendingId === strategy.id}
+                  triggerPending={triggerPendingId === strategy.id}
+                  livePending={livePendingId === strategy.id}
+                  alreadyFollowing={followedStrategyIds.has(strategy.id)}
+                  canExecuteLive={canExecuteLive}
+                  onFollow={handleFollowStrategy}
+                  onQueueTrigger={handleQueueTrigger}
+                  onExecuteLive={handleExecuteLive}
+                />
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <aside className="workspaceSide">
+          <section className="panel sessionPanel compactPanel">
+            <div className="panelHeaderRow">
+              <h2>Trading Session</h2>
+              <span className="tag">{profile?.proxyWalletAddress ? "Proxy" : authSession ? "EOA" : "Idle"}</span>
+            </div>
+            <div className="sessionMeta">
+              <span>User ID</span>
+              <strong>{authSession?.userId ?? userId}</strong>
+            </div>
+            <div className="sessionMeta">
+              <span>Polymarket Profile</span>
+              <strong>{profile?.pseudonym ?? profile?.username ?? "Connect to resolve"}</strong>
+            </div>
+            <div className="sessionMeta">
+              <span>Funding</span>
+              <strong>{allowanceSummary ? `${allowanceSummary.balance} / ${allowanceSummary.allowance}` : "Resolve after live connect"}</strong>
+            </div>
+          </section>
+
+          <OrderLifecyclePanel orders={orders} syncing={isOrderSyncing} onRefresh={handleRefreshOrders} />
+
           <SessionHandoffPanel
-            session={authSession}
-            pendingStart={isSessionPending}
-            pendingConnect={isWalletConnecting}
-            connectedWallet={connectedWallet}
-            pendingHandoff={isHandoffPending}
+            connectedWallet={authSession?.walletAddress ?? connectedWallet}
+            onCreateHandoff={() => void handleCreateHandoff()}
             handoffCode={handoffCode}
             handoffExpiresAt={handoffExpiresAt}
-            onStartSession={handleStartWebSession}
-            onConnectWallet={handleConnectWallet}
-            onGenerateHandoff={handleGenerateHandoff}
+            pending={isHandoffPending}
           />
 
           <FollowedStrategies follows={follows} userId={userId} />
@@ -522,11 +586,11 @@ export const EdgeDashboard = () => {
             logs={auditLogs}
             loading={isAuditLoading}
             filters={auditFilters}
-            onApplyFilters={handleApplyAuditFilters}
-            onRefresh={handleRefreshAudit}
+            onApplyFilters={loadAuditLogs}
+            onRefresh={() => loadAuditLogs(auditFilters)}
           />
         </aside>
-      </section>
-    </div>
+      </div>
+    </main>
   );
 };

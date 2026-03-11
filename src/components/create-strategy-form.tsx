@@ -39,7 +39,8 @@ export const CreateStrategyForm = ({
   onCreate
 }: CreateStrategyFormProps) => {
   const [values, setValues] = useState(initialState);
-  const defaultMarketId = useMemo(() => markets[0]?.id ?? "", [markets]);
+  const tradableMarkets = useMemo(() => markets.filter((market) => market.orderBookEnabled), [markets]);
+  const defaultMarketId = useMemo(() => tradableMarkets[0]?.id ?? "", [tradableMarkets]);
 
   useEffect(() => {
     if (!defaultCreatorHandle) {
@@ -57,6 +58,12 @@ export const CreateStrategyForm = ({
       };
     });
   }, [defaultCreatorHandle]);
+
+  useEffect(() => {
+    if (!values.marketId && defaultMarketId) {
+      setValues((current) => ({ ...current, marketId: defaultMarketId }));
+    }
+  }, [defaultMarketId, values.marketId]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,8 +89,11 @@ export const CreateStrategyForm = ({
   return (
     <form className="panel formPanel" onSubmit={handleSubmit}>
       <div className="panelHeaderRow">
-        <h2>Create AI Strategy</h2>
-        <span className="tag">Open Creator Market</span>
+        <div>
+          <h2>Create AI Strategy</h2>
+          <p>Attach edge logic to a live Polymarket market and publish it instantly.</p>
+        </div>
+        <span className="tag">Live Market Source</span>
       </div>
 
       <label>
@@ -110,12 +120,12 @@ export const CreateStrategyForm = ({
 
       <div className="inputGrid">
         <label>
-          Market
+          Live Market
           <select
             value={values.marketId || defaultMarketId}
             onChange={(event) => setValues((current) => ({ ...current, marketId: event.target.value }))}
           >
-            {markets.map((market) => (
+            {tradableMarkets.map((market) => (
               <option key={market.id} value={market.id}>
                 {market.question}
               </option>
@@ -148,9 +158,7 @@ export const CreateStrategyForm = ({
             min="0"
             step="0.01"
             value={values.conditionValue}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, conditionValue: event.target.value }))
-            }
+            onChange={(event) => setValues((current) => ({ ...current, conditionValue: event.target.value }))}
           />
         </label>
 
@@ -179,9 +187,7 @@ export const CreateStrategyForm = ({
             type="number"
             min="1"
             value={values.allocationUsd}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, allocationUsd: event.target.value }))
-            }
+            onChange={(event) => setValues((current) => ({ ...current, allocationUsd: event.target.value }))}
           />
         </label>
 
@@ -191,16 +197,15 @@ export const CreateStrategyForm = ({
             required
             minLength={2}
             maxLength={24}
+            pattern="[a-zA-Z0-9_]+"
             value={values.creatorHandle}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, creatorHandle: event.target.value }))
-            }
+            onChange={(event) => setValues((current) => ({ ...current, creatorHandle: event.target.value }))}
             placeholder="edgetrader"
           />
         </label>
       </div>
 
-      <button type="submit" disabled={pending || markets.length === 0}>
+      <button type="submit" disabled={pending || tradableMarkets.length === 0}>
         {pending ? "Publishing..." : "Publish Strategy"}
       </button>
     </form>

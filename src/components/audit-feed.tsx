@@ -95,6 +95,7 @@ export const AuditFeed = ({
             <option value="worker">worker</option>
             <option value="session">session</option>
             <option value="handoff">handoff</option>
+            <option value="order">order</option>
           </select>
         </label>
 

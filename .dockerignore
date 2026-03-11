@@ -1,9 +1,7 @@
 node_modules
 .next
-out
-dist
+.git
+coverage
 .env
-tsconfig.tsbuildinfo
 playwright-report
 test-results
-coverage

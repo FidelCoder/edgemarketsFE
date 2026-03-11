@@ -3,13 +3,19 @@ import {
   ApiEnvelope,
   AuditLog,
   AuditLogQuery,
+  AuthChallenge,
   AuthSession,
-  CreateTriggerJobPayload,
+  CreateOrderRecordPayload,
   CreateStrategyPayload,
+  CreateTriggerJobPayload,
+  CreatorPerformanceSummary,
   Follow,
   FollowStrategyPayload,
   Market,
   MutationResult,
+  OrderQuery,
+  OrderRecord,
+  PolymarketProfile,
   RuntimeConfig,
   StablecoinAsset,
   Strategy,
@@ -153,10 +159,12 @@ const requestMutation = async <T>(
   };
 };
 
-const requestWithAuth = async <T>(path: string, sessionToken: string): Promise<T> => {
+const requestWithAuth = async <T>(path: string, sessionToken: string, init?: RequestInit): Promise<T> => {
   return request<T>(path, {
+    ...init,
     headers: {
-      Authorization: `Bearer ${sessionToken}`
+      Authorization: `Bearer ${sessionToken}`,
+      ...(init?.headers ?? {})
     }
   });
 };
@@ -168,7 +176,18 @@ export const edgeApi = {
 
   getRuntimeConfig: (): Promise<RuntimeConfig> => request<RuntimeConfig>("/api/runtime/config"),
 
+  getPolymarketProfile: (walletAddress: string): Promise<PolymarketProfile> =>
+    request<PolymarketProfile>(`/api/polymarket/profile/${walletAddress}`),
+
   listStrategies: (): Promise<Strategy[]> => request<Strategy[]>("/api/strategies"),
+
+  getStrategy: (strategyId: string): Promise<Strategy> => request<Strategy>(`/api/strategies/${strategyId}`),
+
+  getStrategyHistory: (strategyId: string, limit = 40): Promise<OrderRecord[]> =>
+    request<OrderRecord[]>(`/api/strategies/${strategyId}/history${toQueryString({ limit })}`),
+
+  getCreatorPerformance: (creatorHandle: string): Promise<CreatorPerformanceSummary> =>
+    request<CreatorPerformanceSummary>(`/api/creators/${creatorHandle}/performance`),
 
   createStrategy: (
     payload: CreateStrategyPayload,
@@ -203,10 +222,21 @@ export const edgeApi = {
       })}`
     ),
 
-  createAuthSession: (walletAddress: string, client: "web" | "extension" = "web"): Promise<AuthSession> =>
-    request<AuthSession>("/api/auth/sessions", {
+  createAuthChallenge: (walletAddress: string, client: "web" | "extension" = "web"): Promise<AuthChallenge> =>
+    request<AuthChallenge>("/api/auth/challenge", {
       method: "POST",
       body: JSON.stringify({ walletAddress, client })
+    }),
+
+  verifyAuthChallenge: (
+    challengeId: string,
+    walletAddress: string,
+    signature: string,
+    client: "web" | "extension" = "web"
+  ): Promise<AuthSession> =>
+    request<AuthSession>("/api/auth/verify", {
+      method: "POST",
+      body: JSON.stringify({ challengeId, walletAddress, signature, client })
     }),
 
   getCurrentSession: (sessionToken: string): Promise<AuthSession> =>
@@ -215,11 +245,30 @@ export const edgeApi = {
   requestSessionHandoff: (
     sessionToken: string
   ): Promise<{ handoffCode: string; expiresAt: string }> =>
-    requestWithAuth<{ handoffCode: string; expiresAt: string }>("/api/auth/handoff/request", sessionToken),
+    requestWithAuth<{ handoffCode: string; expiresAt: string }>("/api/auth/handoff/request", sessionToken, {
+      method: "POST"
+    }),
 
   consumeSessionHandoff: (handoffCode: string): Promise<AuthSession> =>
     request<AuthSession>("/api/auth/handoff/consume", {
       method: "POST",
       body: JSON.stringify({ handoffCode })
+    }),
+
+  listOrders: (sessionToken: string, query: OrderQuery = {}): Promise<OrderRecord[]> =>
+    requestWithAuth<OrderRecord[]>(
+      `/api/orders${toQueryString({
+        strategyId: query.strategyId,
+        creatorHandle: query.creatorHandle,
+        status: query.status,
+        limit: query.limit ?? 40
+      })}`,
+      sessionToken
+    ),
+
+  upsertOrder: (sessionToken: string, payload: CreateOrderRecordPayload): Promise<OrderRecord> =>
+    requestWithAuth<OrderRecord>("/api/orders", sessionToken, {
+      method: "POST",
+      body: JSON.stringify(payload)
     })
 };

@@ -480,3 +480,255 @@ button:disabled {
     flex: 1;
   }
 }
+
+.edgeShell {
+  width: 100%;
+  margin: 0;
+  padding: 0.85rem 0.9rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.topBarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.walletBadge {
+  min-width: 130px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #2e4061;
+  border-radius: 12px;
+  background: rgba(12, 18, 31, 0.9);
+  display: grid;
+  gap: 0.16rem;
+}
+
+.walletBadge span {
+  font-size: 0.67rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.walletBadge strong {
+  font-size: 0.85rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.statCard {
+  padding: 0.75rem 0.8rem;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.statCard span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.statCard strong {
+  font-size: 1.1rem;
+}
+
+.statusMessage,
+.errorBanner {
+  margin: 0;
+  border-radius: 12px;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid #2c4064;
+  background: rgba(18, 28, 46, 0.92);
+}
+
+.errorBanner {
+  border-color: rgba(255, 98, 116, 0.34);
+  color: #ffc1c8;
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.workspaceMain,
+.workspaceSide {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.compactPanel {
+  padding: 0.8rem;
+}
+
+.marketPanel,
+.orderPanel,
+.creatorPanel,
+.strategyPageHero {
+  padding: 0.85rem;
+}
+
+.orderTableWrap {
+  overflow-x: auto;
+}
+
+.orderTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orderTable th,
+.orderTable td {
+  text-align: left;
+  padding: 0.62rem 0.5rem;
+  border-bottom: 1px solid rgba(49, 66, 96, 0.6);
+  font-size: 0.78rem;
+}
+
+.orderTable th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.emptyState {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.tradeAction {
+  background: linear-gradient(180deg, #4d8dff, #2f72f5);
+  color: #f5f8ff;
+  border: none;
+}
+
+.strategyActionsWide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.14rem 0.48rem;
+  font-size: 0.69rem;
+  border: 1px solid #314260;
+  background: #162033;
+}
+
+.status-open,
+.status-submitted {
+  color: #b9d1ff;
+}
+
+.status-filled {
+  color: #7df0c5;
+}
+
+.status-failed {
+  color: #ffb1bc;
+}
+
+.status-retried {
+  color: #ffd48a;
+}
+
+.compactMetricGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.creatorSnapshot {
+  display: grid;
+  gap: 0.12rem;
+  text-align: right;
+}
+
+.creatorSnapshot span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.creatorStrategyList,
+.historyList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.creatorStrategyRow,
+.historyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  border: 1px solid #263754;
+  border-radius: 12px;
+  padding: 0.7rem 0.75rem;
+  background: rgba(15, 22, 36, 0.85);
+  color: inherit;
+  text-decoration: none;
+}
+
+.creatorStrategyRow p,
+.historyRow p {
+  margin: 0.18rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.historyMeta {
+  display: grid;
+  gap: 0.18rem;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.pageShell {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.backLink {
+  color: #94bbff;
+  text-decoration: none;
+  font-size: 0.84rem;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1240px) {
+  .summaryGrid,
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .summaryGrid,
+  .strategyActionsWide,
+  .compactMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .topBarActions,
+  .creatorStrategyRow,
+  .historyRow {
+    grid-template-columns: 1fr;
+  }
+
+  .orderTable th,
+  .orderTable td {
+    min-width: 120px;
+  }
+}
