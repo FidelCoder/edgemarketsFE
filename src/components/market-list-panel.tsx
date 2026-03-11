@@ -40,9 +40,9 @@ export const MarketListPanel = ({
       <div className="marketListHeader">
         <div>
           <span className="eyebrow">Live Predictions</span>
-          <h2>Market Board</h2>
+          <h2>Curated Market Board</h2>
         </div>
-        <span className="tag">{loading ? "Syncing" : `${markets.length} live`}</span>
+        <span className="tag">{loading ? "Syncing" : `${markets.length} curated`}</span>
       </div>
 
       <label className="searchField">
@@ -50,12 +50,12 @@ export const MarketListPanel = ({
         <input
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search politics, crypto, macro..."
+          placeholder="Search elections, crypto, macro..."
         />
       </label>
 
       {markets.length === 0 ? (
-        <p className="emptyState">No live Polymarket markets are available right now.</p>
+        <p className="emptyState">No curated live markets match the current feed or your search.</p>
       ) : (
         <div className="marketRows">
           {markets.map((market) => {
@@ -72,7 +72,7 @@ export const MarketListPanel = ({
                 <div className="marketRowMain">
                   <div className="marketRowTop">
                     <span className="marketCategory">{market.category}</span>
-                    <span className="marketStrategyCount">{strategyCount} strat</span>
+                    <span className="marketStrategyCount">{strategyCount} strategies</span>
                   </div>
                   <strong>{market.question}</strong>
                   <div className="marketRowMeta">
@@ -81,7 +81,7 @@ export const MarketListPanel = ({
                   </div>
                 </div>
 
-                <div className="marketOdds">
+                <div className="marketRowAside">
                   <span className="marketOdd marketOddYes">YES {formatCents(market.yesPrice)}</span>
                   <span className="marketOdd marketOddNo">NO {formatCents(market.noPrice)}</span>
                 </div>
