@@ -7,6 +7,8 @@ interface CreateStrategyFormProps {
   markets: Market[];
   pending: boolean;
   defaultCreatorHandle?: string;
+  selectedMarket: Market | null;
+  selectedMarketId?: string;
   onCreate: (payload: CreateStrategyPayload) => Promise<void>;
 }
 
@@ -36,6 +38,8 @@ export const CreateStrategyForm = ({
   markets,
   pending,
   defaultCreatorHandle,
+  selectedMarket,
+  selectedMarketId,
   onCreate
 }: CreateStrategyFormProps) => {
   const [values, setValues] = useState(initialState);
@@ -60,10 +64,23 @@ export const CreateStrategyForm = ({
   }, [defaultCreatorHandle]);
 
   useEffect(() => {
-    if (!values.marketId && defaultMarketId) {
-      setValues((current) => ({ ...current, marketId: defaultMarketId }));
+    const nextMarketId = selectedMarketId ?? defaultMarketId;
+
+    if (!nextMarketId) {
+      return;
     }
-  }, [defaultMarketId, values.marketId]);
+
+    setValues((current) => {
+      if (current.marketId === nextMarketId) {
+        return current;
+      }
+
+      return {
+        ...current,
+        marketId: nextMarketId
+      };
+    });
+  }, [defaultMarketId, selectedMarketId]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,7 +88,7 @@ export const CreateStrategyForm = ({
     await onCreate({
       name: values.name,
       description: values.description,
-      marketId: values.marketId || defaultMarketId,
+      marketId: values.marketId || selectedMarketId || defaultMarketId,
       triggerType: values.triggerType,
       conditionValue: Number(values.conditionValue),
       action: values.action,
@@ -90,11 +107,23 @@ export const CreateStrategyForm = ({
     <form className="panel formPanel" onSubmit={handleSubmit}>
       <div className="panelHeaderRow">
         <div>
-          <h2>Create AI Strategy</h2>
-          <p>Attach edge logic to a live Polymarket market and publish it instantly.</p>
+          <span className="eyebrow">Create Strategy</span>
+          <h2>Publish AI Entry Logic</h2>
+          <p>
+            {selectedMarket
+              ? `Attach your strategy to ${selectedMarket.question}`
+              : "Select a live market and publish execution logic instantly."}
+          </p>
         </div>
-        <span className="tag">Live Market Source</span>
+        <span className="tag">{selectedMarket?.category ?? "Live"}</span>
       </div>
+
+      {selectedMarket ? (
+        <div className="selectedMarketBanner">
+          <span>Selected market</span>
+          <strong>{selectedMarket.question}</strong>
+        </div>
+      ) : null}
 
       <label>
         Strategy Name
@@ -114,7 +143,7 @@ export const CreateStrategyForm = ({
           maxLength={240}
           value={values.description}
           onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
-          placeholder="What triggers execution and why this has edge"
+          placeholder="Explain the edge, trigger, and why the execution belongs on this market."
         />
       </label>
 
@@ -122,7 +151,7 @@ export const CreateStrategyForm = ({
         <label>
           Live Market
           <select
-            value={values.marketId || defaultMarketId}
+            value={values.marketId || selectedMarketId || defaultMarketId}
             onChange={(event) => setValues((current) => ({ ...current, marketId: event.target.value }))}
           >
             {tradableMarkets.map((market) => (

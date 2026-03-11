@@ -1,0 +1,542 @@
+.panel {
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.96), rgba(10, 15, 26, 0.98));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.edgeRoot {
+  width: min(1480px, calc(100% - 1.5rem));
+  margin: 0 auto;
+  padding: 0.75rem 0 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.shellHeader {
+  padding: 0.95rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.brandLockup {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 720px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #8bb2ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brandLockup h1,
+.featuredMarketPanel h2,
+.formPanel h2,
+.creatorPanel h1,
+.strategyPageHero h1 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.brandLockup p,
+.featuredMarketPanel p,
+.formPanel p,
+.strategyBookPanel p,
+.orderPanel p,
+.auditPanel p,
+.creatorStrategyRow p,
+.historyRow p,
+.followItem p,
+.strategyCard p,
+.sessionPanel p,
+.railPanel p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.walletBadge {
+  min-width: 132px;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(10, 16, 28, 0.95);
+  display: grid;
+  gap: 0.16rem;
+}
+
+.walletBadgeWide {
+  min-width: 160px;
+}
+
+.walletBadge span,
+.sessionMeta span,
+.compactField span,
+.selectedMarketBanner span,
+.priceTile span,
+.marketFactsGrid span,
+.statCard span,
+.metricGrid span,
+.strategyStatGrid span,
+.strategyMarketStrip span,
+.marketRowMeta,
+.searchField span,
+.creatorSnapshot span,
+.historyMeta span,
+.auditItemTop span,
+.auditItemMeta span,
+.followMeta span,
+.handoffMeta span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.walletBadge strong,
+.sessionMeta strong,
+.statCard strong,
+.metricGrid strong,
+.strategyStatGrid strong,
+.strategyMarketStrip strong,
+.creatorSnapshot strong,
+.historyRow h3,
+.followItem strong,
+.formPanel strong,
+.priceTile strong,
+.marketFactsGrid strong {
+  font-size: 0.95rem;
+}
+
+.connectedStateRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.connectionPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid var(--border-strong);
+}
+
+.connectionLive {
+  background: var(--green-soft);
+  color: #7ef0bc;
+  border-color: rgba(22, 199, 132, 0.34);
+}
+
+.connectionIdle {
+  background: rgba(59, 130, 246, 0.12);
+  color: #a9c7ff;
+}
+
+.statsStrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.statCard {
+  padding: 0.85rem 0.95rem;
+  display: grid;
+  gap: 0.24rem;
+}
+
+.statCard strong {
+  font-size: 1.18rem;
+}
+
+.statusMessage,
+.errorBanner {
+  margin: 0;
+  padding: 0.78rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(15, 24, 39, 0.95);
+}
+
+.statusMessage {
+  color: #8de9c0;
+  border-color: rgba(22, 199, 132, 0.28);
+}
+
+.errorBanner {
+  color: #ffc0c8;
+  border-color: rgba(255, 91, 110, 0.28);
+}
+
+.tradingGrid {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1.45fr) 390px;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.marketStage,
+.railColumn {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.marketListPanel,
+.featuredMarketPanel,
+.strategyBookPanel,
+.formPanel,
+.railPanel,
+.orderPanel,
+.followedPanel,
+.sessionPanel,
+.auditPanel,
+.creatorPanel,
+.strategyPageHero {
+  padding: 0.95rem;
+}
+
+.marketListPanel,
+.featuredMarketPanel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.marketListHeader,
+.panelHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.panelHeaderStart {
+  align-items: center;
+}
+
+.panelHeaderRow h2,
+.panelHeaderRow h3 {
+  margin: 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.24rem 0.55rem;
+  background: rgba(26, 37, 60, 0.92);
+  border: 1px solid var(--border);
+  color: #d7e3fd;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.searchField,
+form label,
+.auditFilterBar label,
+.compactField {
+  display: grid;
+  gap: 0.34rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.marketRows,
+.followList,
+.auditList,
+.strategyStack,
+.creatorStrategyList,
+.historyList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.marketRow {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 0.7rem;
+  background: rgba(12, 19, 32, 0.94);
+  border: 1px solid transparent;
+  padding: 0.8rem;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.marketRow:hover,
+.marketRowActive {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(15, 23, 39, 1);
+}
+
+.marketRowMain {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.marketRowTop,
+.marketRowMeta,
+.strategyTagRow,
+.featuredTags,
+.bookControls,
+.strategyOdds,
+.auditItemMeta,
+.followMeta,
+.strategyActionsWide {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.marketRow strong,
+.strategyCard h3,
+.creatorStrategyRow strong {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.strategyCard h3,
+.historyRow h3 {
+  margin: 0;
+}
+
+.marketCategory,
+.marketStrategyCount {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b5c7ec;
+}
+
+.marketOdds {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.marketOdd {
+  border-radius: 999px;
+  padding: 0.32rem 0.58rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.marketOddYes,
+.priceTileYes {
+  background: var(--green-soft);
+  color: #87f5c3;
+  border-color: rgba(22, 199, 132, 0.32);
+}
+
+.marketOddNo,
+.priceTileNo {
+  background: var(--red-soft);
+  color: #ffb0bb;
+  border-color: rgba(255, 91, 110, 0.32);
+}
+
+.featuredMarketTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.featuredOddsGrid,
+.marketFactsGrid,
+.metricGrid,
+.strategyStatGrid,
+.inputGrid,
+.sessionGrid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.featuredOddsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.95rem;
+}
+
+.priceTile,
+.marketFactsGrid div,
+.metricGrid div,
+.strategyStatGrid div,
+.selectedMarketBanner,
+.strategyMarketStrip,
+.auditItem,
+.followItem,
+.creatorStrategyRow,
+.historyRow {
+  background: rgba(21, 31, 49, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.priceTile {
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.priceTile strong {
+  font-size: 1.7rem;
+}
+
+.marketFactsGrid,
+.metricGrid,
+.strategyStatGrid,
+.sessionGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.95rem;
+}
+
+.marketFactsGrid div,
+.metricGrid div,
+.strategyStatGrid div {
+  padding: 0.7rem 0.76rem;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.selectedMarketBanner,
+.strategyMarketStrip,
+.auditItem,
+.followItem,
+.creatorStrategyRow,
+.historyRow {
+  padding: 0.72rem 0.8rem;
+}
+
+.strategyBookPanel,
+.formPanel,
+.railPanel,
+.orderPanel,
+.followedPanel,
+.auditPanel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.bookControls {
+  justify-content: flex-end;
+}
+
+.compactField {
+  min-width: 132px;
+}
+
+.inputGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.emptyState,
+.auditEmpty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.strategyCard {
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.strategyCardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+.strategyTagRow {
+  justify-content: flex-end;
+}
+
+.strategyMarketStrip {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.strategyActionsWide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tradeAction {
+  background: linear-gradient(180deg, #1ab874, #129a61);
+}
+
+@media (max-width: 1360px) {
+  .tradingGrid {
+    grid-template-columns: 300px minmax(0, 1fr) 360px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .shellHeader,
+  .featuredMarketTop,
+  .strategyCardHead,
+  .strategyMarketStrip,
+  .creatorStrategyRow,
+  .historyRow {
+    flex-direction: column;
+  }
+
+  .statsStrip,
+  .tradingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerActions,
+  .bookControls,
+  .strategyTagRow {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .edgeRoot,
+  .pageShell {
+    width: min(100%, calc(100% - 1rem));
+  }
+
+  .statsStrip,
+  .featuredOddsGrid,
+  .marketFactsGrid,
+  .metricGrid,
+  .strategyStatGrid,
+  .inputGrid,
+  .sessionGrid,
+  .strategyActionsWide {
+    grid-template-columns: 1fr;
+  }
+
+  .strategyActionsWide {
+    width: 100%;
+  }
+
+  .strategyActionsWide button {
+    flex: 1;
+  }
+}

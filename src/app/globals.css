@@ -1,17 +1,21 @@
 :root {
-  --bg: #0b0d12;
-  --bg-soft: #10131b;
-  --panel: #141923;
-  --panel-soft: #1a2130;
-  --panel-muted: #111621;
-  --text: #eef2ff;
-  --text-muted: #9aa6bf;
-  --accent: #4d8dff;
-  --accent-strong: #2f72f5;
-  --ok: #2ac58f;
-  --danger: #ff6274;
-  --border: #253149;
-  --chip: #1e2a43;
+  --bg: #070b12;
+  --bg-soft: #0d1320;
+  --panel: #0f1726;
+  --panel-strong: #131d31;
+  --panel-elevated: #172236;
+  --border: rgba(133, 160, 205, 0.18);
+  --border-strong: rgba(133, 160, 205, 0.34);
+  --text: #f5f7fb;
+  --text-muted: #8ea2c9;
+  --text-soft: #66789d;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --green: #16c784;
+  --green-soft: rgba(22, 199, 132, 0.14);
+  --red: #ff5b6e;
+  --red-soft: rgba(255, 91, 110, 0.14);
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
 }
 
 * {
@@ -23,117 +27,43 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+}
+
+body {
   font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 95% 0%, rgba(77, 141, 255, 0.18), transparent 35%),
-    radial-gradient(circle at 0% 100%, rgba(42, 197, 143, 0.12), transparent 35%),
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(22, 199, 132, 0.1), transparent 22%),
     var(--bg);
 }
 
-.pageShell {
-  width: 100%;
-  margin: 0;
-  padding: 0.85rem 0.9rem 1rem;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.dashboard {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.panel {
-  background: linear-gradient(180deg, var(--panel), var(--panel-muted));
-  border: 1px solid var(--border);
-  border-radius: 14px;
-}
-
-.topBar {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(560px, 1.8fr);
-  gap: 0.8rem;
-  padding: 0.85rem;
-}
-
-.brandBlock {
-  display: grid;
-  gap: 0.35rem;
-  align-content: center;
-}
-
-.eyebrow {
-  margin: 0;
-  color: #7dadff;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.brandBlock h1 {
-  margin: 0;
-  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
-  letter-spacing: -0.01em;
-}
-
-.runtimeText {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-
-.topBarControls {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 0.8fr) auto auto;
-  gap: 0.55rem;
-  align-items: end;
-}
-
-.controlField,
-form label,
-.auditFilterBar label {
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
+button,
 input,
 select,
-textarea,
-button {
+textarea {
   font: inherit;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid #314260;
-  border-radius: 10px;
-  padding: 0.55rem 0.65rem;
-  background: #101725;
-  color: var(--text);
-}
-
-textarea {
-  min-height: 84px;
-  resize: vertical;
 }
 
 button {
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  padding: 0.72rem 0.9rem;
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   color: #f8fbff;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
 }
 
 button:hover:not(:disabled) {
-  filter: brightness(1.07);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
 }
 
 button:disabled {
@@ -141,594 +71,46 @@ button:disabled {
   cursor: not-allowed;
 }
 
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 0.72rem 0.82rem;
+  background: rgba(11, 18, 32, 0.94);
+  color: var(--text);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-soft);
+}
+
 .ghostAction {
-  background: #1a263f;
-  border-color: #2f4266;
-  color: #b9cbeb;
-}
-
-.panelHeaderRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.panelHeaderRow h2,
-.panelHeaderRow h3 {
-  margin: 0;
-  font-size: 0.96rem;
-}
-
-.tag {
-  background: var(--chip);
-  border: 1px solid #31435f;
-  color: #b7c7e6;
-  border-radius: 999px;
-  padding: 0.14rem 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-
-.statItem {
-  padding: 0.7rem 0.75rem;
-  display: grid;
-  gap: 0.25rem;
-}
-
-.statItem span {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.statItem strong {
-  font-size: 1rem;
-}
-
-.statusText,
-.errorText {
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
-  font-size: 0.83rem;
-  border: 1px solid transparent;
-}
-
-.statusText {
-  background: rgba(42, 197, 143, 0.12);
-  border-color: rgba(42, 197, 143, 0.35);
-  color: #7de0b8;
-}
-
-.errorText {
-  background: rgba(255, 98, 116, 0.12);
-  border-color: rgba(255, 98, 116, 0.35);
-  color: #ff9baa;
-}
-
-.workspaceGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
-  gap: 0.7rem;
-  align-items: start;
-}
-
-.mainColumn,
-.sideColumn {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.formPanel,
-.followedPanel,
-.sessionPanel,
-.auditPanel,
-.strategyCard {
-  padding: 0.75rem;
-}
-
-.formPanel {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.inputGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.followedPanel,
-.auditPanel,
-.sessionPanel {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.followList,
-.auditList {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.followItem,
-.auditItem {
-  border: 1px solid #2a3955;
-  background: var(--panel-soft);
-  border-radius: 10px;
-  padding: 0.58rem 0.64rem;
-}
-
-.followItem {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.followItem strong {
-  font-size: 0.88rem;
-}
-
-.followItem p {
-  margin: 0.16rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
-.followMeta {
-  display: grid;
-  gap: 0.14rem;
-  font-size: 0.75rem;
-  color: #c2cce0;
-}
-
-.sessionActionRow,
-.auditFilterActions,
-.strategyActions {
-  display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.sessionMeta,
-.handoffMeta {
-  display: grid;
-  gap: 0.18rem;
-  font-size: 0.74rem;
-  color: #b7c6df;
-}
-
-.manualSession {
-  border: 1px solid #2a3a56;
-  border-radius: 10px;
-  padding: 0.42rem 0.5rem;
-  background: #111a2a;
-}
-
-.manualSession summary {
-  cursor: pointer;
-  font-size: 0.76rem;
-  color: #97add1;
-  font-weight: 600;
-}
-
-.sessionForm {
-  margin-top: 0.55rem;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.auditFilterBar {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 0.8fr auto;
-  gap: 0.5rem;
-  align-items: end;
-}
-
-.auditEmpty {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
-.auditItem {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.auditItemTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.65rem;
-  align-items: baseline;
-}
-
-.auditItemTop strong {
-  font-size: 0.8rem;
-  color: #cfe1ff;
-}
-
-.auditItemTop span {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.auditItemMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.36rem;
-}
-
-.auditItemMeta span {
-  font-size: 0.68rem;
-  color: #afc0dc;
-  background: #19243a;
-  border: 1px solid #2f425f;
-  border-radius: 999px;
-  padding: 0.09rem 0.4rem;
-}
-
-.strategyGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.strategyCard {
-  display: grid;
-  gap: 0.58rem;
-}
-
-.strategyCard p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.metricGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.metricGrid div,
-.marketContext div {
-  background: #182236;
-  border: 1px solid #2a3b5a;
-  border-radius: 10px;
-  padding: 0.46rem 0.52rem;
-  display: grid;
-  gap: 0.16rem;
-}
-
-.metricGrid span,
-.marketContext span {
-  color: #95a7c6;
-  font-size: 0.69rem;
-}
-
-.metricGrid strong,
-.marketContext strong {
-  font-size: 0.78rem;
-}
-
-.marketContext {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.priceRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-@media (max-width: 1240px) {
-  .topBar {
-    grid-template-columns: 1fr;
-  }
-
-  .topBarControls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .workspaceGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .sideColumn {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-
-  .sideColumn .auditPanel {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 860px) {
-  .pageShell {
-    padding: 0.6rem;
-  }
-
-  .statsRow,
-  .strategyGrid,
-  .sideColumn,
-  .inputGrid,
-  .metricGrid,
-  .topBarControls,
-  .auditFilterBar {
-    grid-template-columns: 1fr;
-  }
-
-  .auditFilterActions,
-  .strategyActions,
-  .sessionActionRow {
-    width: 100%;
-  }
-
-  .auditFilterActions button,
-  .strategyActions button,
-  .sessionActionRow button {
-    flex: 1;
-  }
-}
-
-.edgeShell {
-  width: 100%;
-  margin: 0;
-  padding: 0.85rem 0.9rem 1rem;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.topBarActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.walletBadge {
-  min-width: 130px;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid #2e4061;
-  border-radius: 12px;
-  background: rgba(12, 18, 31, 0.9);
-  display: grid;
-  gap: 0.16rem;
-}
-
-.walletBadge span {
-  font-size: 0.67rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.walletBadge strong {
-  font-size: 0.85rem;
-}
-
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.statCard {
-  padding: 0.75rem 0.8rem;
-  display: grid;
-  gap: 0.22rem;
-}
-
-.statCard span {
-  color: var(--text-muted);
-  font-size: 0.72rem;
-}
-
-.statCard strong {
-  font-size: 1.1rem;
-}
-
-.statusMessage,
-.errorBanner {
-  margin: 0;
-  border-radius: 12px;
-  padding: 0.72rem 0.8rem;
-  border: 1px solid #2c4064;
-  background: rgba(18, 28, 46, 0.92);
-}
-
-.errorBanner {
-  border-color: rgba(255, 98, 116, 0.34);
-  color: #ffc1c8;
-}
-
-.workspaceGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
-  gap: 0.75rem;
-  align-items: start;
-}
-
-.workspaceMain,
-.workspaceSide {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.compactPanel {
-  padding: 0.8rem;
-}
-
-.marketPanel,
-.orderPanel,
-.creatorPanel,
-.strategyPageHero {
-  padding: 0.85rem;
-}
-
-.orderTableWrap {
-  overflow-x: auto;
-}
-
-.orderTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.orderTable th,
-.orderTable td {
-  text-align: left;
-  padding: 0.62rem 0.5rem;
-  border-bottom: 1px solid rgba(49, 66, 96, 0.6);
-  font-size: 0.78rem;
-}
-
-.orderTable th {
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.emptyState {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.tradeAction {
-  background: linear-gradient(180deg, #4d8dff, #2f72f5);
-  color: #f5f8ff;
-  border: none;
-}
-
-.strategyActionsWide {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.statusPill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.14rem 0.48rem;
-  font-size: 0.69rem;
-  border: 1px solid #314260;
-  background: #162033;
-}
-
-.status-open,
-.status-submitted {
-  color: #b9d1ff;
-}
-
-.status-filled {
-  color: #7df0c5;
-}
-
-.status-failed {
-  color: #ffb1bc;
-}
-
-.status-retried {
-  color: #ffd48a;
-}
-
-.compactMetricGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.creatorSnapshot {
-  display: grid;
-  gap: 0.12rem;
-  text-align: right;
-}
-
-.creatorSnapshot span {
-  color: var(--text-muted);
-  font-size: 0.72rem;
-}
-
-.creatorStrategyList,
-.historyList {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.creatorStrategyRow,
-.historyRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.65rem;
-  border: 1px solid #263754;
-  border-radius: 12px;
-  padding: 0.7rem 0.75rem;
-  background: rgba(15, 22, 36, 0.85);
-  color: inherit;
-  text-decoration: none;
-}
-
-.creatorStrategyRow p,
-.historyRow p {
-  margin: 0.18rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.historyMeta {
-  display: grid;
-  gap: 0.18rem;
-  text-align: right;
-  color: var(--text-muted);
-  font-size: 0.75rem;
+  background: rgba(18, 29, 48, 0.95);
+  border-color: var(--border-strong);
+  color: #d4def5;
 }
 
 .pageShell {
+  width: min(1240px, calc(100% - 1.6rem));
+  margin: 0 auto;
+  padding: 1rem 0 2rem;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.9rem;
 }
 
 .backLink {
-  color: #94bbff;
-  text-decoration: none;
-  font-size: 0.84rem;
+  color: #b9c8e8;
+  font-size: 0.9rem;
 }
 
 .backLink:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 1240px) {
-  .summaryGrid,
-  .workspaceGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
-  .summaryGrid,
-  .strategyActionsWide,
-  .compactMetricGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .topBarActions,
-  .creatorStrategyRow,
-  .historyRow {
-    grid-template-columns: 1fr;
-  }
-
-  .orderTable th,
-  .orderTable td {
-    min-width: 120px;
-  }
+  color: #ffffff;
 }

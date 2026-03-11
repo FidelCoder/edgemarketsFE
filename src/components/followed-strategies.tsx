@@ -7,12 +7,20 @@ interface FollowedStrategiesProps {
   userId: string;
 }
 
+const shorten = (value: string): string => {
+  if (value.length <= 24) {
+    return value;
+  }
+
+  return `${value.slice(0, 12)}...${value.slice(-6)}`;
+};
+
 export const FollowedStrategies = ({ follows, userId }: FollowedStrategiesProps) => {
   return (
     <section className="panel followedPanel">
       <div className="panelHeaderRow">
-        <h2>Live Allocations</h2>
-        <span className="tag">{userId}</span>
+        <h2>Active Allocations</h2>
+        <span className="tag">{shorten(userId)}</span>
       </div>
 
       {follows.length === 0 ? (

@@ -1,0 +1,104 @@
+.orderTableWrap {
+  overflow-x: auto;
+}
+
+.orderTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orderTable th,
+.orderTable td {
+  padding: 0.68rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(133, 160, 205, 0.12);
+  font-size: 0.78rem;
+}
+
+.orderTable th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.statusPill {
+  display: inline-flex;
+  padding: 0.18rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.status-submitted,
+.status-open,
+.status-retried {
+  color: #bcd2ff;
+}
+
+.status-filled {
+  color: #8cf3bf;
+}
+
+.status-failed {
+  color: #ffb0bb;
+}
+
+.auditFilterBar {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 0.65fr auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.auditFilterActions {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.auditItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.creatorSnapshot {
+  text-align: right;
+}
+
+.creatorStrategyRow,
+.historyRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.historyMeta {
+  display: grid;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+.handoffMeta {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.compactPanel {
+  padding: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  .auditFilterBar {
+    grid-template-columns: 1fr;
+  }
+
+  .auditFilterActions {
+    width: 100%;
+  }
+
+  .auditFilterActions button {
+    flex: 1;
+  }
+}
