@@ -32,6 +32,8 @@ export type AuthClient = "web" | "extension";
 
 export type OrderLifecycleStatus = "submitted" | "open" | "filled" | "failed" | "retried";
 
+export type OrderSource = "strategy" | "agent";
+
 export type PolymarketTradeStatus = "MATCHED" | "MINED" | "CONFIRMED" | "RETRYING" | "FAILED" | "UNKNOWN";
 
 export interface ApiEnvelope<T> {
@@ -189,6 +191,67 @@ export interface MarketInsightSource {
   url: string;
 }
 
+export interface AutomationHaltRules {
+  maxDrawdownPct: number;
+  dailyLossLimitUsd: number;
+  maxConsecutiveLosses: number;
+}
+
+export interface AutomationPlanLeg {
+  marketId: string;
+  question: string;
+  category: string;
+  subcategory: string;
+  action: "buy_yes" | "buy_no";
+  allocationUsd: number;
+  marketProbabilityYes: number;
+  fairProbabilityYes: number;
+  conviction: number;
+  rationale: string;
+  riskNote: string;
+  maxHoldingHours: number;
+  stopLossProbability: number;
+  takeProfitProbability: number;
+}
+
+export interface GenerateAutomationPlanPayload {
+  bankrollUsd: number;
+  targetReturnPct: number;
+  timeHorizonDays: number;
+  maxDrawdownPct: number;
+  dailyLossLimitUsd: number;
+  maxPositions: number;
+  reserveRatio: number;
+  profitReinvestmentPct: number;
+  rebalanceIntervalHours: number;
+  maxConsecutiveLosses: number;
+  preferredCategories?: string[];
+  provider?: AiProvider;
+  model?: string;
+  objective?: string;
+}
+
+export interface AutomationPlan {
+  bankrollUsd: number;
+  deployableUsd: number;
+  reserveUsd: number;
+  targetReturnPct: number;
+  timeHorizonDays: number;
+  rebalanceIntervalHours: number;
+  profitReinvestmentPct: number;
+  haltRules: AutomationHaltRules;
+  summary: string;
+  compoundingNote: string;
+  reviewPlan: string[];
+  safeguards: string[];
+  provider: AiProvider;
+  model: string;
+  objective?: string;
+  legs: AutomationPlanLeg[];
+  sources: MarketInsightSource[];
+  generatedAt: string;
+}
+
 export interface AiProviderSummary {
   id: AiProvider;
   label: string;
@@ -294,6 +357,7 @@ export interface PolymarketProfile {
 export interface OrderRecord {
   id: string;
   polymarketOrderId: string;
+  source: OrderSource;
   strategyId: string;
   creatorHandle: string;
   marketId: string;
@@ -319,6 +383,7 @@ export interface OrderRecord {
 
 export interface CreateOrderRecordPayload {
   polymarketOrderId: string;
+  source: OrderSource;
   strategyId: string;
   creatorHandle: string;
   marketId: string;

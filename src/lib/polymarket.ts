@@ -11,7 +11,9 @@ import {
 import { createWalletClient, custom, type Address } from "viem";
 import { polygon, polygonAmoy } from "viem/chains";
 import {
+  ActionType,
   CreateOrderRecordPayload,
+  Market,
   OrderLifecycleStatus,
   OrderRecord,
   PolymarketProfile,
@@ -38,6 +40,15 @@ export interface LiveClobContext {
   walletAddress: string;
   funderAddress: string;
   profile: PolymarketProfile;
+}
+
+interface MarketOrderIntent {
+  market: Market;
+  action: ActionType;
+  allocationUsd: number;
+  userId: string;
+  strategyId?: string;
+  creatorHandle?: string;
 }
 
 const toProvider = (): EthereumProvider => {
@@ -192,6 +203,26 @@ const tokenIdForStrategy = (strategy: Strategy): string => {
     : strategy.market.noTokenId;
 };
 
+const outcomeForActionType = (action: ActionType): "YES" | "NO" => {
+  return action.endsWith("yes") ? "YES" : "NO";
+};
+
+const sideForActionType = (action: ActionType): Side => {
+  return action.startsWith("buy") ? Side.BUY : Side.SELL;
+};
+
+const priceForMarketIntent = (market: Market, action: ActionType): number => {
+  return outcomeForActionType(action) === "YES" ? market.yesPrice : market.noPrice;
+};
+
+const tokenIdForMarketIntent = (market: Market, action: ActionType): string => {
+  return outcomeForActionType(action) === "YES" ? market.yesTokenId : market.noTokenId;
+};
+
+const sizeForAllocation = (allocationUsd: number, price: number): number => {
+  return Number((allocationUsd / Math.max(price, 0.01)).toFixed(3));
+};
+
 const sizeForStrategy = (strategy: Strategy): number => {
   const price = Math.max(priceForStrategy(strategy), 0.01);
   return Number((strategy.allocationUsd / price).toFixed(3));
@@ -310,6 +341,7 @@ export const placeLiveStrategyOrder = async (
 
   return {
     polymarketOrderId: response.orderID,
+    source: "strategy",
     strategyId: strategy.id,
     creatorHandle: strategy.creatorHandle,
     marketId: strategy.marketId,
@@ -324,6 +356,57 @@ export const placeLiveStrategyOrder = async (
     price,
     size,
     amountUsd: strategy.allocationUsd,
+    status: mapOrderStatus(response.status, tradeStatus),
+    tradeStatus,
+    transactionHashes: response.transactionsHashes ?? []
+  };
+};
+
+export const placeLiveMarketOrder = async (
+  context: LiveClobContext,
+  intent: MarketOrderIntent
+): Promise<CreateOrderRecordPayload> => {
+  if (!intent.market.orderBookEnabled) {
+    throw new Error("This market is not live-tradable from the current source.");
+  }
+
+  const tokenId = tokenIdForMarketIntent(intent.market, intent.action);
+  const side = sideForActionType(intent.action);
+  const price = Number(priceForMarketIntent(intent.market, intent.action).toFixed(3));
+  const size = sizeForAllocation(intent.allocationUsd, price);
+  const orderBook = await context.client.getOrderBook(tokenId);
+  const response = await context.client.createAndPostOrder(
+    {
+      tokenID: tokenId,
+      price,
+      side,
+      size
+    },
+    {
+      tickSize: orderBook.tick_size as "0.1" | "0.01" | "0.001" | "0.0001",
+      negRisk: orderBook.neg_risk
+    },
+    OrderType.GTC
+  );
+  const tradeStatus = mapTradeStatus(response.status);
+
+  return {
+    polymarketOrderId: response.orderID,
+    source: "agent",
+    strategyId: intent.strategyId ?? `agent:${intent.market.id}`,
+    creatorHandle: intent.creatorHandle ?? "edgeagent",
+    marketId: intent.market.id,
+    userId: intent.userId,
+    walletAddress: context.walletAddress,
+    funderAddress: context.funderAddress,
+    tokenId,
+    outcome: outcomeForActionType(intent.action),
+    action: intent.action,
+    side: side === Side.BUY ? "BUY" : "SELL",
+    orderType: "GTC",
+    price,
+    size,
+    amountUsd: intent.allocationUsd,
     status: mapOrderStatus(response.status, tradeStatus),
     tradeStatus,
     transactionHashes: response.transactionsHashes ?? []
@@ -360,6 +443,7 @@ export const syncLiveOrderState = async (
 
   return {
     polymarketOrderId: order.polymarketOrderId,
+    source: order.source,
     strategyId: order.strategyId,
     creatorHandle: order.creatorHandle,
     marketId: order.marketId,

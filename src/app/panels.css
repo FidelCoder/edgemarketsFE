@@ -20,6 +20,20 @@
   font-weight: 600;
 }
 
+.orderSourceLabel {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.orderSourceLabel strong {
+  font-size: 0.78rem;
+}
+
+.orderSourceLabel span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
 .statusPill {
   display: inline-flex;
   padding: 0.18rem 0.44rem;
@@ -318,6 +332,90 @@
   padding: 0.8rem 0.82rem;
   display: grid;
   gap: 0.45rem;
+}
+
+.agentPanel,
+.agentSessionSummary,
+.agentPlanBody,
+.agentLegList,
+.agentLegCard {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.agentActionRow,
+.agentCategoryStrip,
+.agentMetricGrid,
+.agentLegTop,
+.agentLegMetrics,
+.agentLegFooter,
+.agentMicroCopy {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.agentActionRow {
+  justify-content: flex-start;
+}
+
+.agentSessionSummary,
+.agentLegCard {
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  border-radius: 16px;
+  background: rgba(10, 15, 25, 0.86);
+  padding: 0.9rem;
+}
+
+.agentMetricGrid {
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.agentMetricGrid > div {
+  min-width: 108px;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.agentMetricGrid span,
+.agentMicroCopy span:nth-child(odd) {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.agentMetricGrid strong,
+.agentLegTop h3 {
+  margin: 0;
+}
+
+.agentLegTop {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.agentLegTop > div {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.agentLegMetrics span,
+.agentLegFooter span,
+.agentMicroCopy span {
+  border-radius: 999px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.36rem 0.58rem;
+  font-size: 0.72rem;
+}
+
+.agentLegFooter span:nth-child(1) {
+  color: #ffbcc6;
+}
+
+.agentLegFooter span:nth-child(2) {
+  color: #93f1c3;
 }
 
 .marketCommentCard p,

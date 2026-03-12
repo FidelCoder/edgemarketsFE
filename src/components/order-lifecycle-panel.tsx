@@ -33,7 +33,7 @@ export const OrderLifecyclePanel = ({ orders, syncing, onRefresh }: OrderLifecyc
       </div>
 
       {orders.length === 0 ? (
-        <p className="emptyState">No live orders yet. Execute a strategy to start tracking order lifecycle.</p>
+        <p className="emptyState">No live orders yet. Execute a strategy or run the agent to start tracking order lifecycle.</p>
       ) : (
         <div className="orderTableWrap">
           <table className="orderTable">
@@ -52,7 +52,14 @@ export const OrderLifecyclePanel = ({ orders, syncing, onRefresh }: OrderLifecyc
               {orders.map((order) => (
                 <tr key={order.id}>
                   <td>
-                    <Link href={`/strategies/${order.strategyId}`}>{order.strategyId}</Link>
+                    {order.source === "agent" ? (
+                      <div className="orderSourceLabel">
+                        <strong>AI Agent</strong>
+                        <span>{order.marketId}</span>
+                      </div>
+                    ) : (
+                      <Link href={`/strategies/${order.strategyId}`}>{order.strategyId}</Link>
+                    )}
                   </td>
                   <td>
                     <span className={`statusPill status-${order.status}`}>{order.status}</span>

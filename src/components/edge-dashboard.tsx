@@ -121,7 +121,6 @@ export const EdgeDashboard = () => {
       setSelectedMarketId(null);
       return;
     }
-
     if (selectedMarket && selectedMarket.id !== selectedMarketId) {
       setSelectedMarketId(selectedMarket.id);
     }
@@ -132,7 +131,6 @@ export const EdgeDashboard = () => {
       setMarketInsight(null);
       return;
     }
-
     setMarketInsight((current) => (current?.marketId === selectedMarket.id ? current : null));
   }, [selectedMarket]);
 
@@ -530,6 +528,7 @@ export const EdgeDashboard = () => {
         connectedWallet={connectedWallet}
         handoffCode={handoffCode}
         handoffExpiresAt={handoffExpiresAt}
+        ensureLiveContext={ensureLiveSessionContext}
         onSelectMarket={setSelectedMarketId}
         onFundingStablecoinChange={setFundingStablecoin}
         onCreateStrategy={handleCreateStrategy}
@@ -542,6 +541,9 @@ export const EdgeDashboard = () => {
         onConnectWallet={() => void handleConnectWallet()}
         onRefreshOrders={() => void handleRefreshOrders()}
         onCreateHandoff={() => void handleCreateHandoff()}
+        onOrdersChange={setOrders}
+        onStatusChange={setStatusMessage}
+        onError={setErrorMessage}
       />
     </main>
   );

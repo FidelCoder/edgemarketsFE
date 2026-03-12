@@ -1,6 +1,7 @@
 import { apiBaseUrl } from "./config";
 import {
   ApiEnvelope,
+  AutomationPlan,
   AuditLog,
   AuditLogQuery,
   AuthChallenge,
@@ -12,6 +13,7 @@ import {
   Follow,
   FollowStrategyPayload,
   GenerateMarketInsightPayload,
+  GenerateAutomationPlanPayload,
   Market,
   MarketContext,
   MarketInsight,
@@ -184,6 +186,12 @@ export const edgeApi = {
 
   generateMarketInsight: (payload: GenerateMarketInsightPayload): Promise<MarketInsight> =>
     request<MarketInsight>("/api/ai/market-insight", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+
+  generateAutomationPlan: (payload: GenerateAutomationPlanPayload): Promise<AutomationPlan> =>
+    request<AutomationPlan>("/api/ai/automation-plan", {
       method: "POST",
       body: JSON.stringify(payload)
     }),

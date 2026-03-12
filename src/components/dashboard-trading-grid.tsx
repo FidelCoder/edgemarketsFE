@@ -12,6 +12,8 @@ import {
   StablecoinSymbol,
   Strategy
 } from "@/lib/types";
+import type { LiveClobContext } from "@/lib/polymarket";
+import { AgentAutomationPanel } from "./agent-automation-panel";
 import { AuditFeed, AuditFilterState } from "./audit-feed";
 import { CreateStrategyForm } from "./create-strategy-form";
 import { FeaturedMarketPanel } from "./featured-market-panel";
@@ -25,6 +27,7 @@ import { OrderLifecyclePanel } from "./order-lifecycle-panel";
 import { SessionHandoffPanel } from "./session-handoff-panel";
 import { StrategyMarketplacePanel } from "./strategy-marketplace-panel";
 import { TradingSessionPanel } from "./trading-session-panel";
+import { useAgentAutomation } from "./use-agent-automation";
 
 interface DashboardTradingGridProps {
   markets: Market[];
@@ -59,6 +62,7 @@ interface DashboardTradingGridProps {
   connectedWallet: string | null;
   handoffCode: string | null;
   handoffExpiresAt: string | null;
+  ensureLiveContext: () => Promise<LiveClobContext>;
   onSelectMarket: (marketId: string | null) => void;
   onFundingStablecoinChange: (value: StablecoinSymbol) => void;
   onCreateStrategy: (payload: CreateStrategyPayload) => Promise<void>;
@@ -75,6 +79,9 @@ interface DashboardTradingGridProps {
   onConnectWallet: () => void;
   onRefreshOrders: () => void;
   onCreateHandoff: () => void;
+  onOrdersChange: (orders: OrderRecord[]) => void;
+  onStatusChange: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 export const DashboardTradingGrid = ({
@@ -110,6 +117,7 @@ export const DashboardTradingGrid = ({
   connectedWallet,
   handoffCode,
   handoffExpiresAt,
+  ensureLiveContext,
   onSelectMarket,
   onFundingStablecoinChange,
   onCreateStrategy,
@@ -121,8 +129,22 @@ export const DashboardTradingGrid = ({
   onRefreshAudit,
   onConnectWallet,
   onRefreshOrders,
-  onCreateHandoff
+  onCreateHandoff,
+  onOrdersChange,
+  onStatusChange,
+  onError
 }: DashboardTradingGridProps) => {
+  const agentAutomation = useAgentAutomation({
+    runtime,
+    authSession,
+    markets,
+    orders,
+    ensureLiveContext,
+    onOrdersChange,
+    onStatus: onStatusChange,
+    onError
+  });
+
   return (
     <div className="tradingGrid tradingHomeGrid">
       <section className="marketStage marketStageHome">
@@ -192,6 +214,19 @@ export const DashboardTradingGrid = ({
       </section>
 
       <aside className="railColumn railColumnHome">
+        <AgentAutomationPanel
+          runtime={runtime}
+          authSession={authSession}
+          markets={markets}
+          plan={agentAutomation.plan}
+          session={agentAutomation.session}
+          evaluation={agentAutomation.evaluation}
+          planPending={agentAutomation.planPending}
+          executionPending={agentAutomation.executionPending}
+          onGeneratePlan={agentAutomation.generatePlan}
+          onExecutePlan={agentAutomation.executePlan}
+          onHaltPlan={() => agentAutomation.haltSession()}
+        />
         <CreateStrategyForm
           markets={markets}
           pending={createPending}
