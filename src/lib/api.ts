@@ -11,7 +11,9 @@ import {
   CreatorPerformanceSummary,
   Follow,
   FollowStrategyPayload,
+  GenerateMarketInsightPayload,
   Market,
+  MarketInsight,
   MutationResult,
   OrderQuery,
   OrderRecord,
@@ -175,6 +177,12 @@ export const edgeApi = {
   listStablecoins: (): Promise<StablecoinAsset[]> => request<StablecoinAsset[]>("/api/stablecoins"),
 
   getRuntimeConfig: (): Promise<RuntimeConfig> => request<RuntimeConfig>("/api/runtime/config"),
+
+  generateMarketInsight: (payload: GenerateMarketInsightPayload): Promise<MarketInsight> =>
+    request<MarketInsight>("/api/ai/market-insight", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
 
   getPolymarketProfile: (walletAddress: string): Promise<PolymarketProfile> =>
     request<PolymarketProfile>(`/api/polymarket/profile/${walletAddress}`),

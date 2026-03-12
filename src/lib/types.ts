@@ -23,7 +23,8 @@ export type AuditEntityType =
   | "worker"
   | "session"
   | "handoff"
-  | "order";
+  | "order"
+  | "market_insight";
 
 export type AuthClient = "web" | "extension";
 
@@ -103,6 +104,43 @@ export interface RuntimeConfig {
   triggerWorkerIntervalMs: number;
   triggerWorkerBatchSize: number;
   supportedStablecoins: StablecoinSymbol[];
+  aiEnabled: boolean;
+  aiModel: string | null;
+  aiWebSearchEnabled: boolean;
+}
+
+export type MarketInsightTradeBias = "buy_yes" | "buy_no" | "wait";
+
+export interface GenerateMarketInsightPayload {
+  marketId: string;
+  angle?: string;
+}
+
+export interface MarketInsight {
+  marketId: string;
+  marketQuestion: string;
+  marketProbabilityYes: number;
+  fairProbabilityYes: number;
+  edgePercentagePoints: number;
+  confidence: number;
+  tradeBias: MarketInsightTradeBias;
+  timeHorizon: string;
+  summary: string;
+  thesis: string;
+  counterThesis: string;
+  keyCatalysts: string[];
+  riskFlags: string[];
+  executionPlan: string[];
+  sources: MarketInsightSource[];
+  disclaimer: string;
+  angle?: string;
+  model: string;
+  generatedAt: string;
+}
+
+export interface MarketInsightSource {
+  title: string;
+  url: string;
 }
 
 export interface CreateStrategyPayload {

@@ -17,6 +17,7 @@ import {
   CreateStrategyPayload,
   Follow,
   Market,
+  MarketInsight,
   OrderRecord,
   PolymarketProfile,
   RuntimeConfig,
@@ -24,16 +25,9 @@ import {
   StablecoinSymbol,
   Strategy
 } from "@/lib/types";
-import { AuditFeed, AuditFilterState } from "./audit-feed";
-import { CreateStrategyForm } from "./create-strategy-form";
+import { AuditFilterState } from "./audit-feed";
+import { DashboardTradingGrid } from "./dashboard-trading-grid";
 import { DashboardHeader } from "./dashboard-header";
-import { FeaturedMarketPanel } from "./featured-market-panel";
-import { FollowedStrategies } from "./followed-strategies";
-import { MarketListPanel } from "./market-list-panel";
-import { OrderLifecyclePanel } from "./order-lifecycle-panel";
-import { SessionHandoffPanel } from "./session-handoff-panel";
-import { StrategyMarketplacePanel } from "./strategy-marketplace-panel";
-import { TradingSessionPanel } from "./trading-session-panel";
 import {
   defaultAuditFilters,
   defaultUserId,
@@ -52,6 +46,7 @@ export const EdgeDashboard = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [follows, setFollows] = useState<Follow[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [marketInsight, setMarketInsight] = useState<MarketInsight | null>(null);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<PolymarketProfile | null>(null);
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
@@ -67,6 +62,7 @@ export const EdgeDashboard = () => {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isAuditLoading, setIsAuditLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isInsightGenerating, setIsInsightGenerating] = useState(false);
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
   const [isHandoffPending, setIsHandoffPending] = useState(false);
   const [isOrderSyncing, setIsOrderSyncing] = useState(false);
@@ -82,12 +78,9 @@ export const EdgeDashboard = () => {
     () => toCreatorHandle(authSession?.walletAddress ?? connectedWallet, userId),
     [authSession?.walletAddress, connectedWallet, userId]
   );
-
   const sortedMarkets = useMemo(() => [...markets].sort((left, right) => right.liquidityUsd - left.liquidityUsd), [markets]);
-
   const filteredMarkets = useMemo(() => {
     const query = marketSearch.trim().toLowerCase();
-
     return sortedMarkets.filter((market) => {
       if (!query) {
         return true;
@@ -100,7 +93,6 @@ export const EdgeDashboard = () => {
       );
     });
   }, [marketSearch, sortedMarkets]);
-
   const selectedMarket = useMemo(() => {
     return (
       filteredMarkets.find((market) => market.id === selectedMarketId) ??
@@ -110,24 +102,19 @@ export const EdgeDashboard = () => {
       null
     );
   }, [filteredMarkets, selectedMarketId, sortedMarkets]);
-
   const strategyCountByMarket = useMemo(() => {
     return strategies.reduce<Record<string, number>>((counts, strategy) => {
       counts[strategy.marketId] = (counts[strategy.marketId] ?? 0) + 1;
       return counts;
     }, {});
   }, [strategies]);
-
   const selectedMarketStrategies = useMemo(() => {
     if (!selectedMarket) {
       return strategies;
     }
-
     return strategies.filter((strategy) => strategy.marketId === selectedMarket.id);
   }, [selectedMarket, strategies]);
-
   const canExecuteLive = Boolean(authSession && runtime?.executionMode === "live");
-
   useEffect(() => {
     if (!selectedMarket && selectedMarketId !== null) {
       setSelectedMarketId(null);
@@ -138,6 +125,15 @@ export const EdgeDashboard = () => {
       setSelectedMarketId(selectedMarket.id);
     }
   }, [selectedMarket, selectedMarketId]);
+
+  useEffect(() => {
+    if (!selectedMarket) {
+      setMarketInsight(null);
+      return;
+    }
+
+    setMarketInsight((current) => (current?.marketId === selectedMarket.id ? current : null));
+  }, [selectedMarket]);
 
   const loadAuditLogs = async (filters: AuditFilterState) => {
     const logs = await edgeApi.listAuditLogs(toAuditQuery(filters));
@@ -150,7 +146,6 @@ export const EdgeDashboard = () => {
       setOrders([]);
       return;
     }
-
     const nextOrders = await edgeApi.listOrders(sessionToken, { limit: 40 });
     setOrders(nextOrders);
   };
@@ -195,7 +190,6 @@ export const EdgeDashboard = () => {
     if (runtime) {
       return runtime;
     }
-
     const nextRuntime = await edgeApi.getRuntimeConfig();
     setRuntime(nextRuntime);
     return nextRuntime;
@@ -209,16 +203,13 @@ export const EdgeDashboard = () => {
     if (liveContext) {
       return liveContext;
     }
-
     const nextRuntime = await ensureRuntime();
     const nextProfile = await edgeApi.getPolymarketProfile(authSession.walletAddress);
     const context = await createLiveClobContext(nextRuntime, authSession.walletAddress, nextProfile);
     const allowance = await checkCollateralAllowance(context).catch(() => null);
-
     setProfile(nextProfile);
     setLiveContext(context);
     setAllowanceSummary(allowance);
-
     return context;
   };
 
@@ -230,13 +221,10 @@ export const EdgeDashboard = () => {
     if (typeof window === "undefined") {
       return;
     }
-
     const storedToken = window.localStorage.getItem(webSessionStorageKey);
-
     if (!storedToken) {
       return;
     }
-
     edgeApi
       .getCurrentSession(storedToken)
       .then(async (session) => {
@@ -264,6 +252,34 @@ export const EdgeDashboard = () => {
       setErrorMessage(message);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleGenerateMarketInsight = async (angle?: string) => {
+    if (!selectedMarket) {
+      setErrorMessage("Select a market before generating AI insight.");
+      return;
+    }
+    if (!runtime?.aiEnabled) {
+      setErrorMessage("Backend AI provider is not configured.");
+      return;
+    }
+    setIsInsightGenerating(true);
+    setErrorMessage(null);
+
+    try {
+      const nextInsight = await edgeApi.generateMarketInsight({
+        marketId: selectedMarket.id,
+        angle
+      });
+      setMarketInsight(nextInsight);
+      await loadAuditLogs(auditFilters);
+      setStatusMessage(`AI insight refreshed for ${selectedMarket.question}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not generate AI insight.";
+      setErrorMessage(message);
+    } finally {
+      setIsInsightGenerating(false);
     }
   };
 
@@ -357,12 +373,10 @@ export const EdgeDashboard = () => {
       setErrorMessage("Connect a wallet before executing live orders.");
       return;
     }
-
     if (runtime?.executionMode !== "live") {
       setErrorMessage("Backend runtime is not configured for live Polymarket execution.");
       return;
     }
-
     setLivePendingId(strategy.id);
     setErrorMessage(null);
 
@@ -385,7 +399,6 @@ export const EdgeDashboard = () => {
       setErrorMessage("Connect a wallet to load order lifecycle.");
       return;
     }
-
     setIsOrderSyncing(true);
     setErrorMessage(null);
 
@@ -421,7 +434,6 @@ export const EdgeDashboard = () => {
       setErrorMessage("Connect a wallet session before creating extension handoff.");
       return;
     }
-
     setIsHandoffPending(true);
     setErrorMessage(null);
 
@@ -472,76 +484,54 @@ export const EdgeDashboard = () => {
       {errorMessage ? <p className="errorBanner">{errorMessage}</p> : null}
       {statusMessage ? <p className="statusMessage">{statusMessage}</p> : null}
 
-      <div className="tradingGrid">
-        <MarketListPanel
-          markets={filteredMarkets}
-          selectedMarketId={selectedMarket?.id ?? selectedMarketId}
-          searchValue={marketSearch}
-          loading={isBootstrapping}
-          strategyCountByMarket={strategyCountByMarket}
-          onSearchChange={setMarketSearch}
-          onSelectMarket={setSelectedMarketId}
-        />
-
-        <section className="marketStage">
-          <FeaturedMarketPanel
-            market={selectedMarket}
-            strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
-          />
-          <StrategyMarketplacePanel
-            selectedMarketQuestion={selectedMarket?.question ?? null}
-            strategies={selectedMarketStrategies}
-            stablecoins={stablecoins}
-            fundingStablecoin={fundingStablecoin}
-            followPendingId={followPendingId}
-            triggerPendingId={triggerPendingId}
-            livePendingId={livePendingId}
-            followedStrategyIds={followedStrategyIds}
-            canExecuteLive={canExecuteLive}
-            onFundingStablecoinChange={setFundingStablecoin}
-            onFollow={handleFollowStrategy}
-            onQueueTrigger={handleQueueTrigger}
-            onExecuteLive={handleExecuteLive}
-          />
-
-          <AuditFeed
-            logs={auditLogs}
-            loading={isAuditLoading}
-            filters={auditFilters}
-            onApplyFilters={loadAuditLogs}
-            onRefresh={() => loadAuditLogs(auditFilters)}
-          />
-        </section>
-
-        <aside className="railColumn">
-          <CreateStrategyForm
-            markets={markets}
-            pending={isCreating}
-            defaultCreatorHandle={suggestedCreatorHandle}
-            selectedMarket={selectedMarket}
-            selectedMarketId={selectedMarket?.id ?? undefined}
-            onCreate={handleCreateStrategy}
-          />
-          <TradingSessionPanel
-            authSession={authSession}
-            userId={userId}
-            profile={profile}
-            allowanceSummary={allowanceSummary}
-            isWalletConnecting={isWalletConnecting}
-            onConnectWallet={handleConnectWallet}
-          />
-
-          <OrderLifecyclePanel orders={orders} syncing={isOrderSyncing} onRefresh={handleRefreshOrders} />
-          <FollowedStrategies follows={follows} userId={userId} />
-          <SessionHandoffPanel
-            connectedWallet={authSession?.walletAddress ?? connectedWallet}
-            onCreateHandoff={() => void handleCreateHandoff()}
-            handoffCode={handoffCode}
-            handoffExpiresAt={handoffExpiresAt}
-            pending={isHandoffPending}
-          />
-        </aside>
-      </div>
+      <DashboardTradingGrid
+        markets={filteredMarkets}
+        selectedMarket={selectedMarket}
+        selectedMarketId={selectedMarketId}
+        marketSearch={marketSearch}
+        loading={isBootstrapping || isAuditLoading}
+        strategyCountByMarket={strategyCountByMarket}
+        stablecoins={stablecoins}
+        fundingStablecoin={fundingStablecoin}
+        selectedMarketStrategies={selectedMarketStrategies}
+        follows={follows}
+        followedStrategyIds={followedStrategyIds}
+        orders={orders}
+        auditLogs={auditLogs}
+        auditFilters={auditFilters}
+        runtime={runtime}
+        marketInsight={marketInsight}
+        insightPending={isInsightGenerating}
+        createPending={isCreating}
+        walletConnecting={isWalletConnecting}
+        orderSyncing={isOrderSyncing}
+        handoffPending={isHandoffPending}
+        followPendingId={followPendingId}
+        triggerPendingId={triggerPendingId}
+        livePendingId={livePendingId}
+        canExecuteLive={canExecuteLive}
+        suggestedCreatorHandle={suggestedCreatorHandle}
+        authSession={authSession}
+        userId={userId}
+        profile={profile}
+        allowanceSummary={allowanceSummary}
+        connectedWallet={connectedWallet}
+        handoffCode={handoffCode}
+        handoffExpiresAt={handoffExpiresAt}
+        onSearchChange={setMarketSearch}
+        onSelectMarket={setSelectedMarketId}
+        onFundingStablecoinChange={setFundingStablecoin}
+        onCreateStrategy={handleCreateStrategy}
+        onGenerateInsight={handleGenerateMarketInsight}
+        onFollow={handleFollowStrategy}
+        onQueueTrigger={handleQueueTrigger}
+        onExecuteLive={handleExecuteLive}
+        onApplyAuditFilters={loadAuditLogs}
+        onRefreshAudit={async () => loadAuditLogs(auditFilters)}
+        onConnectWallet={() => void handleConnectWallet()}
+        onRefreshOrders={() => void handleRefreshOrders()}
+        onCreateHandoff={() => void handleCreateHandoff()}
+      />
     </main>
   );
 };
