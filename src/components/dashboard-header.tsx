@@ -38,10 +38,19 @@ export const DashboardHeader = ({
   return (
     <>
       <header className="panel shellHeader">
-        <div className="brandLockup">
-          <span className="eyebrow">EdgeMarkets</span>
-          <h1>Live AI Conditional Orders for Polymarket</h1>
-          <p>Browse live prediction markets, publish creator strategies, and execute through your own wallet.</p>
+        <div className="brandCluster">
+          <span className="brandMark">
+            <img src="https://polymarket.com/favicon.ico" alt="Polymarket" />
+          </span>
+          <div className="brandLockup">
+            <span className="eyebrow">EdgeMarkets</span>
+            <h1>AI Trading Desk for Polymarket</h1>
+            <p>Browse live prediction markets, generate model-backed theses, publish strategies, and execute from your wallet.</p>
+            <div className="brandSubmeta">
+              <span className="tag">Powered by Polymarket rails</span>
+              <span className="tag">Prediction market workspace</span>
+            </div>
+          </div>
         </div>
 
         <div className="headerActions">

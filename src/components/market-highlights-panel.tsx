@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Market } from "@/lib/types";
+import { MarketAvatar } from "./market-avatar";
 
 interface MarketHighlightsPanelProps {
   markets: Market[];
@@ -89,7 +90,10 @@ export const MarketHighlightsPanel = ({
             <span className="tag">{activeMarket.negRisk ? "Negative risk" : "Standard book"}</span>
           </div>
 
-          <h3>{activeMarket.question}</h3>
+          <div className="highlightHeading">
+            <MarketAvatar market={activeMarket} size="lg" />
+            <h3>{activeMarket.question}</h3>
+          </div>
           <p>
             Rotating spotlight surfaces markets with live order books, stronger liquidity, and more balanced odds so the
             center stage stays focused on tradable setups rather than dead contracts.
@@ -125,7 +129,10 @@ export const MarketHighlightsPanel = ({
               className={`highlightNavItem ${index === activeIndex ? "highlightNavItemActive" : ""}`.trim()}
               onClick={() => setActiveIndex(index)}
             >
-              <span>{market.category}</span>
+              <div className="highlightNavLead">
+                <MarketAvatar market={market} size="sm" />
+                <span>{market.category}</span>
+              </div>
               <strong>{market.question}</strong>
             </button>
           ))}

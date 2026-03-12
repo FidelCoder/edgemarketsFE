@@ -1,4 +1,5 @@
 import { Market } from "@/lib/types";
+import { MarketAvatar } from "./market-avatar";
 
 interface FeaturedMarketPanelProps {
   market: Market | null;
@@ -47,14 +48,18 @@ export const FeaturedMarketPanel = ({ market, strategyCount }: FeaturedMarketPan
   return (
     <section className="panel featuredMarketPanel">
       <div className="featuredMarketTop">
-        <div>
-          <span className="eyebrow">{market.category}</span>
-          <h2>{market.question}</h2>
-          <p>Trade this live market directly or attach AI entry logic through a creator strategy.</p>
+        <div className="featuredMarketHero">
+          <MarketAvatar market={market} size="lg" />
+          <div>
+            <span className="eyebrow">{market.category}</span>
+            <h2>{market.question}</h2>
+            <p>Trade this live market directly or attach AI entry logic through a creator strategy.</p>
+          </div>
         </div>
         <div className="featuredTags">
           <span className="tag">{strategyCount} strategies</span>
           <span className="tag">{market.orderBookEnabled ? "Order book live" : "Read only"}</span>
+          <span className="tag">Polymarket market</span>
         </div>
       </div>
 

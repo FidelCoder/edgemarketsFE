@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Market } from "@/lib/types";
+import { MarketAvatar } from "./market-avatar";
 
 interface MarketListPanelProps {
   markets: Market[];
@@ -35,6 +37,31 @@ export const MarketListPanel = ({
   onSearchChange,
   onSelectMarket
 }: MarketListPanelProps) => {
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  const categories = useMemo(() => {
+    const counts = markets.reduce<Record<string, number>>((accumulator, market) => {
+      accumulator[market.category] = (accumulator[market.category] ?? 0) + 1;
+      return accumulator;
+    }, {});
+
+    return ["All", ...Object.entries(counts).sort((left, right) => right[1] - left[1]).map(([category]) => category).slice(0, 6)];
+  }, [markets]);
+
+  useEffect(() => {
+    if (!categories.includes(activeCategory)) {
+      setActiveCategory("All");
+    }
+  }, [activeCategory, categories]);
+
+  const visibleMarkets = useMemo(() => {
+    if (activeCategory === "All") {
+      return markets;
+    }
+
+    return markets.filter((market) => market.category === activeCategory);
+  }, [activeCategory, markets]);
+
   return (
     <section className="panel marketListPanel">
       <div className="marketListHeader">
@@ -42,7 +69,20 @@ export const MarketListPanel = ({
           <span className="eyebrow">Live Predictions</span>
           <h2>Curated Market Board</h2>
         </div>
-        <span className="tag">{loading ? "Syncing" : `${markets.length} curated`}</span>
+        <span className="tag">{loading ? "Syncing" : `${visibleMarkets.length} curated`}</span>
+      </div>
+
+      <div className="marketTopicStrip">
+        {categories.map((category) => (
+          <button
+            key={category}
+            type="button"
+            className={`marketTopicChip ${activeCategory === category ? "marketTopicChipActive" : ""}`.trim()}
+            onClick={() => setActiveCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
       </div>
 
       <label className="searchField">
@@ -54,11 +94,11 @@ export const MarketListPanel = ({
         />
       </label>
 
-      {markets.length === 0 ? (
+      {visibleMarkets.length === 0 ? (
         <p className="emptyState">No curated live markets match the current feed or your search.</p>
       ) : (
         <div className="marketRows">
-          {markets.map((market) => {
+          {visibleMarkets.map((market) => {
             const isActive = market.id === selectedMarketId;
             const strategyCount = strategyCountByMarket[market.id] ?? 0;
 
@@ -71,7 +111,10 @@ export const MarketListPanel = ({
               >
                 <div className="marketRowMain">
                   <div className="marketRowTop">
-                    <span className="marketCategory">{market.category}</span>
+                    <div className="marketRowLead">
+                      <MarketAvatar market={market} size="sm" />
+                      <span className="marketCategory">{market.category}</span>
+                    </div>
                     <span className="marketStrategyCount">{strategyCount} strategies</span>
                   </div>
                   <strong>{market.question}</strong>
