@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./dashboard.css";
 import "./panels.css";
+import "./dashboard-home.css";
 
 export const metadata: Metadata = {
   title: "EdgeMarkets",

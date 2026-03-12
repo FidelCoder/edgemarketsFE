@@ -488,6 +488,8 @@ export const EdgeDashboard = () => {
         followsCount={follows.length}
         ordersCount={orders.length}
         totalAllocationUsd={totalAllocation}
+        marketSearch={marketSearch}
+        onSearchChange={setMarketSearch}
         onConnectWallet={handleConnectWallet}
         onDisconnect={handleDisconnect}
       />
@@ -499,7 +501,6 @@ export const EdgeDashboard = () => {
         markets={filteredMarkets}
         selectedMarket={selectedMarket}
         selectedMarketId={selectedMarketId}
-        marketSearch={marketSearch}
         loading={isBootstrapping || isAuditLoading}
         strategyCountByMarket={strategyCountByMarket}
         stablecoins={stablecoins}
@@ -529,7 +530,6 @@ export const EdgeDashboard = () => {
         connectedWallet={connectedWallet}
         handoffCode={handoffCode}
         handoffExpiresAt={handoffExpiresAt}
-        onSearchChange={setMarketSearch}
         onSelectMarket={setSelectedMarketId}
         onFundingStablecoinChange={setFundingStablecoin}
         onCreateStrategy={handleCreateStrategy}

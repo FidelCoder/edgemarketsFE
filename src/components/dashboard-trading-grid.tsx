@@ -19,6 +19,7 @@ import { FollowedStrategies } from "./followed-strategies";
 import { MarketHighlightsPanel } from "./market-highlights-panel";
 import { MarketInsightPanel } from "./market-insight-panel";
 import { MarketListPanel } from "./market-list-panel";
+import { MarketPulsePanel } from "./market-pulse-panel";
 import { OrderLifecyclePanel } from "./order-lifecycle-panel";
 import { SessionHandoffPanel } from "./session-handoff-panel";
 import { StrategyMarketplacePanel } from "./strategy-marketplace-panel";
@@ -28,7 +29,6 @@ interface DashboardTradingGridProps {
   markets: Market[];
   selectedMarket: Market | null;
   selectedMarketId: string | null;
-  marketSearch: string;
   loading: boolean;
   strategyCountByMarket: Record<string, number>;
   stablecoins: StablecoinAsset[];
@@ -58,7 +58,6 @@ interface DashboardTradingGridProps {
   connectedWallet: string | null;
   handoffCode: string | null;
   handoffExpiresAt: string | null;
-  onSearchChange: (value: string) => void;
   onSelectMarket: (marketId: string | null) => void;
   onFundingStablecoinChange: (value: StablecoinSymbol) => void;
   onCreateStrategy: (payload: CreateStrategyPayload) => Promise<void>;
@@ -81,7 +80,6 @@ export const DashboardTradingGrid = ({
   markets,
   selectedMarket,
   selectedMarketId,
-  marketSearch,
   loading,
   strategyCountByMarket,
   stablecoins,
@@ -111,7 +109,6 @@ export const DashboardTradingGrid = ({
   connectedWallet,
   handoffCode,
   handoffExpiresAt,
-  onSearchChange,
   onSelectMarket,
   onFundingStablecoinChange,
   onCreateStrategy,
@@ -126,36 +123,47 @@ export const DashboardTradingGrid = ({
   onCreateHandoff
 }: DashboardTradingGridProps) => {
   return (
-    <div className="tradingGrid">
-      <MarketListPanel
-        markets={markets}
-        selectedMarketId={selectedMarket?.id ?? selectedMarketId}
-        searchValue={marketSearch}
-        loading={loading}
-        strategyCountByMarket={strategyCountByMarket}
-        onSearchChange={onSearchChange}
-        onSelectMarket={onSelectMarket}
-      />
+    <div className="tradingGrid tradingHomeGrid">
+      <section className="marketStage marketStageHome">
+        <div className="marketSpotlightGrid">
+          <div className="marketSpotlightMain">
+            <MarketHighlightsPanel
+              markets={markets}
+              selectedMarketId={selectedMarket?.id ?? selectedMarketId}
+              strategyCountByMarket={strategyCountByMarket}
+              onSelectMarket={(marketId) => onSelectMarket(marketId)}
+            />
+            <FeaturedMarketPanel
+              market={selectedMarket}
+              markets={markets}
+              strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
+            />
+          </div>
 
-      <section className="marketStage">
-        <MarketHighlightsPanel
+          <div className="marketSignalRail">
+            <MarketPulsePanel
+              markets={markets}
+              selectedMarketId={selectedMarket?.id ?? selectedMarketId}
+              onSelectMarket={(marketId) => onSelectMarket(marketId)}
+            />
+            <MarketInsightPanel
+              market={selectedMarket}
+              runtime={runtime}
+              insight={marketInsight}
+              pending={insightPending}
+              onGenerate={onGenerateInsight}
+            />
+          </div>
+        </div>
+
+        <MarketListPanel
           markets={markets}
           selectedMarketId={selectedMarket?.id ?? selectedMarketId}
+          loading={loading}
           strategyCountByMarket={strategyCountByMarket}
-          onSelectMarket={(marketId) => onSelectMarket(marketId)}
+          onSelectMarket={onSelectMarket}
         />
-        <FeaturedMarketPanel
-          market={selectedMarket}
-          markets={markets}
-          strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
-        />
-        <MarketInsightPanel
-          market={selectedMarket}
-          runtime={runtime}
-          insight={marketInsight}
-          pending={insightPending}
-          onGenerate={onGenerateInsight}
-        />
+
         <StrategyMarketplacePanel
           selectedMarketQuestion={selectedMarket?.question ?? null}
           strategies={selectedMarketStrategies}
@@ -181,7 +189,7 @@ export const DashboardTradingGrid = ({
         />
       </section>
 
-      <aside className="railColumn">
+      <aside className="railColumn railColumnHome">
         <CreateStrategyForm
           markets={markets}
           pending={createPending}
