@@ -16,6 +16,7 @@ import { AuditFeed, AuditFilterState } from "./audit-feed";
 import { CreateStrategyForm } from "./create-strategy-form";
 import { FeaturedMarketPanel } from "./featured-market-panel";
 import { FollowedStrategies } from "./followed-strategies";
+import { MarketHighlightsPanel } from "./market-highlights-panel";
 import { MarketInsightPanel } from "./market-insight-panel";
 import { MarketListPanel } from "./market-list-panel";
 import { OrderLifecyclePanel } from "./order-lifecycle-panel";
@@ -137,6 +138,12 @@ export const DashboardTradingGrid = ({
       />
 
       <section className="marketStage">
+        <MarketHighlightsPanel
+          markets={markets}
+          selectedMarketId={selectedMarket?.id ?? selectedMarketId}
+          strategyCountByMarket={strategyCountByMarket}
+          onSelectMarket={(marketId) => onSelectMarket(marketId)}
+        />
         <FeaturedMarketPanel
           market={selectedMarket}
           strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}

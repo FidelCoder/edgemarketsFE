@@ -1,20 +1,23 @@
 .panel {
-  background: linear-gradient(180deg, rgba(16, 24, 39, 0.96), rgba(10, 15, 26, 0.98));
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  background:
+    linear-gradient(180deg, rgba(17, 25, 40, 0.94), rgba(9, 13, 22, 0.98)),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 32%);
+  border: 1px solid rgba(133, 160, 205, 0.16);
+  border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
 }
 
 .edgeRoot {
-  width: min(100%, calc(100% - 0.75rem));
+  width: min(100%, calc(100% - 0.4rem));
   margin: 0 auto;
-  padding: 0.5rem 0 1rem;
+  padding: 0.45rem 0 1rem;
   display: grid;
-  gap: 0.85rem;
+  gap: 0.95rem;
 }
 
 .shellHeader {
-  padding: 0.95rem 1rem;
+  padding: 1rem 1.08rem;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -152,11 +155,11 @@
 .statsStrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .statCard {
-  padding: 0.85rem 0.95rem;
+  padding: 0.82rem 0.92rem;
   display: grid;
   gap: 0.24rem;
 }
@@ -186,15 +189,15 @@
 
 .tradingGrid {
   display: grid;
-  grid-template-columns: minmax(280px, 300px) minmax(0, 1fr) minmax(320px, 360px);
-  gap: 0.85rem;
+  grid-template-columns: minmax(280px, 296px) minmax(0, 1fr) minmax(320px, 348px);
+  gap: 0.95rem;
   align-items: start;
 }
 
 .marketStage,
 .railColumn {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.95rem;
 }
 
 .marketStage {
@@ -235,7 +238,7 @@
   align-self: start;
   position: sticky;
   top: 0.5rem;
-  max-height: calc(100vh - 1rem);
+  max-height: calc(100vh - 1.2rem);
   overflow: hidden;
 }
 
@@ -303,17 +306,19 @@ form label,
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.7rem;
   align-items: center;
-  background: rgba(12, 19, 32, 0.94);
-  border: 1px solid transparent;
-  padding: 0.68rem 0.72rem;
+  background: rgba(10, 16, 28, 0.86);
+  border: 1px solid rgba(133, 160, 205, 0.08);
+  border-radius: 16px;
+  padding: 0.72rem 0.78rem;
   color: var(--text);
   font-weight: 400;
 }
 
 .marketRow:hover,
 .marketRowActive {
-  border-color: rgba(59, 130, 246, 0.45);
-  background: rgba(15, 23, 39, 1);
+  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(15, 23, 39, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.16);
 }
 
 .marketRowMain {
@@ -410,6 +415,97 @@ form label,
 .featuredOddsGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 0.95rem;
+}
+
+.marketHighlightsPanel {
+  display: grid;
+  gap: 0.95rem;
+  overflow: hidden;
+}
+
+.highlightHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 300px);
+  gap: 0.85rem;
+}
+
+.highlightMain {
+  padding: 1rem;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.22), transparent 35%),
+    linear-gradient(180deg, rgba(13, 21, 36, 0.98), rgba(8, 12, 20, 0.98));
+  border: 1px solid rgba(133, 160, 205, 0.14);
+  display: grid;
+  gap: 0.8rem;
+}
+
+.highlightMain h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.highlightMain p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.highlightStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.highlightStats div {
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  border-radius: 14px;
+  padding: 0.78rem 0.82rem;
+  background: rgba(8, 14, 24, 0.66);
+  display: grid;
+  gap: 0.16rem;
+}
+
+.highlightStats span,
+.highlightNavItem span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.highlightStats strong {
+  font-size: 1rem;
+}
+
+.highlightActions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.highlightNav {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.highlightNavItem {
+  width: 100%;
+  text-align: left;
+  padding: 0.82rem 0.84rem;
+  border-radius: 16px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(10, 16, 28, 0.76);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.highlightNavItem strong {
+  font-size: 0.88rem;
+  line-height: 1.3;
+}
+
+.highlightNavItemActive {
+  border-color: rgba(59, 130, 246, 0.34);
+  background: rgba(14, 23, 39, 0.94);
 }
 
 .priceTile,
@@ -652,6 +748,7 @@ form label,
     justify-content: flex-start;
   }
 
+  .highlightHero,
   .insightMetrics,
   .insightColumns {
     grid-template-columns: 1fr;
@@ -665,6 +762,7 @@ form label,
   }
 
   .statsStrip,
+  .highlightStats,
   .featuredOddsGrid,
   .marketFactsGrid,
   .metricGrid,
