@@ -61,7 +61,11 @@ interface DashboardTradingGridProps {
   onSelectMarket: (marketId: string | null) => void;
   onFundingStablecoinChange: (value: StablecoinSymbol) => void;
   onCreateStrategy: (payload: CreateStrategyPayload) => Promise<void>;
-  onGenerateInsight: (angle?: string) => Promise<void>;
+  onGenerateInsight: (options: {
+    angle?: string;
+    provider?: "openai" | "anthropic";
+    model?: string;
+  }) => Promise<void>;
   onFollow: (strategy: Strategy) => void;
   onQueueTrigger: (strategy: Strategy) => void;
   onExecuteLive: (strategy: Strategy) => void;

@@ -255,7 +255,15 @@ export const EdgeDashboard = () => {
     }
   };
 
-  const handleGenerateMarketInsight = async (angle?: string) => {
+  const handleGenerateMarketInsight = async ({
+    angle,
+    provider,
+    model
+  }: {
+    angle?: string;
+    provider?: "openai" | "anthropic";
+    model?: string;
+  }) => {
     if (!selectedMarket) {
       setErrorMessage("Select a market before generating AI insight.");
       return;
@@ -270,11 +278,13 @@ export const EdgeDashboard = () => {
     try {
       const nextInsight = await edgeApi.generateMarketInsight({
         marketId: selectedMarket.id,
-        angle
+        angle,
+        provider,
+        model
       });
       setMarketInsight(nextInsight);
       await loadAuditLogs(auditFilters);
-      setStatusMessage(`AI insight refreshed for ${selectedMarket.question}.`);
+      setStatusMessage(`AI insight refreshed for ${selectedMarket.question} with ${nextInsight.provider}/${nextInsight.model}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not generate AI insight.";
       setErrorMessage(message);

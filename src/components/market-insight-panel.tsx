@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Market, MarketInsight, RuntimeConfig } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { AiProvider, Market, MarketInsight, RuntimeConfig } from "@/lib/types";
 
 interface MarketInsightPanelProps {
   market: Market | null;
   runtime: RuntimeConfig | null;
   insight: MarketInsight | null;
   pending: boolean;
-  onGenerate: (angle?: string) => Promise<void>;
+  onGenerate: (options: { angle?: string; provider?: AiProvider; model?: string }) => Promise<void>;
 }
 
 const toPercent = (value: number): string => `${Math.round(value * 100)}%`;
-
 const toEdge = (value: number): string => `${value > 0 ? "+" : ""}${value.toFixed(1)} pts`;
 
 const formatBias = (value: MarketInsight["tradeBias"]): string => {
@@ -32,6 +31,10 @@ const formatDate = (value: string): string => {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 };
 
+const toProviderLabel = (provider: AiProvider): string => {
+  return provider === "anthropic" ? "Anthropic" : "OpenAI";
+};
+
 export const MarketInsightPanel = ({
   market,
   runtime,
@@ -40,10 +43,44 @@ export const MarketInsightPanel = ({
   onGenerate
 }: MarketInsightPanelProps) => {
   const [angle, setAngle] = useState("");
+  const [provider, setProvider] = useState<AiProvider | "">("");
+  const [model, setModel] = useState("");
+
+  const enabledProviders = useMemo(
+    () => runtime?.aiProviders.filter((entry) => entry.enabled) ?? [],
+    [runtime?.aiProviders]
+  );
 
   useEffect(() => {
     setAngle("");
   }, [market?.id]);
+
+  useEffect(() => {
+    if (!runtime) {
+      return;
+    }
+
+    const fallbackProvider = runtime.aiDefaultProvider ?? enabledProviders[0]?.id ?? "";
+    setProvider((current) => {
+      if (current && enabledProviders.some((entry) => entry.id === current)) {
+        return current;
+      }
+
+      return fallbackProvider;
+    });
+  }, [enabledProviders, runtime]);
+
+  useEffect(() => {
+    if (!provider) {
+      setModel("");
+      return;
+    }
+
+    const providerConfig = enabledProviders.find((entry) => entry.id === provider);
+    setModel(providerConfig?.defaultModel ?? "");
+  }, [enabledProviders, provider]);
+
+  const selectedProvider = enabledProviders.find((entry) => entry.id === provider) ?? null;
 
   if (!market) {
     return (
@@ -60,24 +97,24 @@ export const MarketInsightPanel = ({
       <section className="panel insightPanel emptyPanel">
         <span className="eyebrow">AI Market Thesis</span>
         <h2>Loading runtime</h2>
-        <p className="emptyState">Fetching backend runtime so the AI panel can determine whether insight generation is available.</p>
+        <p className="emptyState">Fetching backend runtime so the AI panel can determine which providers are enabled.</p>
       </section>
     );
   }
 
-  if (!runtime?.aiEnabled) {
+  if (!runtime.aiEnabled || enabledProviders.length === 0) {
     return (
       <section className="panel insightPanel">
         <div className="panelHeaderRow">
           <div>
             <span className="eyebrow">AI Market Thesis</span>
-            <h2>Provider not configured</h2>
+            <h2>No provider configured</h2>
           </div>
           <span className="tag">Offline</span>
         </div>
         <p>
-          Set <code>OPENAI_API_KEY</code> on the backend to enable structured market insights for the selected
-          Polymarket contract.
+          Set <code>OPENAI_API_KEY</code> and/or <code>ANTHROPIC_API_KEY</code> on the backend to enable
+          multi-model market insights.
         </p>
       </section>
     );
@@ -91,15 +128,37 @@ export const MarketInsightPanel = ({
           <h2>Model view on this market</h2>
         </div>
         <div className="featuredTags">
-          <span className="tag">{runtime.aiModel ?? "AI"}</span>
-          {runtime.aiWebSearchEnabled ? <span className="tag">Grounded Web</span> : null}
+          <span className="tag">{selectedProvider ? toProviderLabel(selectedProvider.id) : "AI"}</span>
+          {selectedProvider?.webSearchEnabled ? <span className="tag">Grounded Web</span> : null}
         </div>
       </div>
 
       <p className="insightIntro">
-        Generate a structured thesis with fair odds, confidence, catalysts, and execution guidance for{" "}
-        <strong>{market.question}</strong>.
+        Pick a provider and model, then generate a structured thesis with fair odds, confidence, catalysts, and
+        execution guidance for <strong>{market.question}</strong>.
       </p>
+
+      <div className="inputGrid insightControlGrid">
+        <label className="compactField">
+          Provider
+          <select value={provider} onChange={(event) => setProvider(event.target.value as AiProvider)}>
+            {enabledProviders.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="compactField">
+          Model
+          <input
+            value={model}
+            onChange={(event) => setModel(event.target.value)}
+            placeholder={selectedProvider?.defaultModel ?? "Enter provider model"}
+          />
+        </label>
+      </div>
 
       <label className="compactField">
         Optional angle
@@ -111,7 +170,17 @@ export const MarketInsightPanel = ({
       </label>
 
       <div className="insightActions">
-        <button type="button" onClick={() => void onGenerate(angle.trim() || undefined)} disabled={pending}>
+        <button
+          type="button"
+          onClick={() =>
+            void onGenerate({
+              angle: angle.trim() || undefined,
+              provider: provider || undefined,
+              model: model.trim() || undefined
+            })
+          }
+          disabled={pending || !provider}
+        >
           {pending ? "Generating..." : insight ? "Refresh Insight" : "Generate Insight"}
         </button>
       </div>
@@ -201,13 +270,14 @@ export const MarketInsightPanel = ({
           ) : null}
 
           <div className="insightFooter">
+            <span>Provider: {toProviderLabel(insight.provider)} / {insight.model}</span>
             <span>Horizon: {insight.timeHorizon}</span>
             <span>Generated: {formatDate(insight.generatedAt)}</span>
           </div>
           <p className="insightDisclaimer">{insight.disclaimer}</p>
         </div>
       ) : (
-        <p className="emptyState">No thesis yet. Generate one to score this market before you publish or trade.</p>
+        <p className="emptyState">No thesis yet. Pick a provider, then generate one to score this market.</p>
       )}
     </section>
   );
