@@ -146,6 +146,7 @@ export const DashboardTradingGrid = ({
         />
         <FeaturedMarketPanel
           market={selectedMarket}
+          markets={markets}
           strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
         />
         <MarketInsightPanel

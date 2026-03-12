@@ -84,6 +84,7 @@ export const MarketHighlightsPanel = ({
         <div className="highlightMain">
           <div className="featuredTags">
             <span className="tag">{activeMarket.category}</span>
+            <span className="tag">{activeMarket.subcategory}</span>
             <span className="tag">
               {strategyCountByMarket[activeMarket.id] ?? 0} strategies
             </span>
@@ -131,7 +132,7 @@ export const MarketHighlightsPanel = ({
             >
               <div className="highlightNavLead">
                 <MarketAvatar market={market} size="sm" />
-                <span>{market.category}</span>
+                <span>{market.subcategory}</span>
               </div>
               <strong>{market.question}</strong>
             </button>

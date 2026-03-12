@@ -22,6 +22,7 @@ const strategy: Strategy = {
     id: "market-btc-100k-2026",
     question: "Will BTC touch $100k before Dec 31, 2026?",
     category: "Crypto",
+    subcategory: "Bitcoin",
     yesPrice: 0.4,
     noPrice: 0.6,
     liquidityUsd: 1200000,

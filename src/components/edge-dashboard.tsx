@@ -89,6 +89,7 @@ export const EdgeDashboard = () => {
       return (
         market.question.toLowerCase().includes(query) ||
         market.category.toLowerCase().includes(query) ||
+        market.subcategory.toLowerCase().includes(query) ||
         market.slug.toLowerCase().includes(query)
       );
     });

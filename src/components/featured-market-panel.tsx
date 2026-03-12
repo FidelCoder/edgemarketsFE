@@ -1,8 +1,10 @@
 import { Market } from "@/lib/types";
 import { MarketAvatar } from "./market-avatar";
+import { MarketGraphsPanel } from "./market-graphs-panel";
 
 interface FeaturedMarketPanelProps {
   market: Market | null;
+  markets: Market[];
   strategyCount: number;
 }
 
@@ -34,7 +36,7 @@ const formatDate = (value: string | null): string => {
   return parsed.toLocaleString();
 };
 
-export const FeaturedMarketPanel = ({ market, strategyCount }: FeaturedMarketPanelProps) => {
+export const FeaturedMarketPanel = ({ market, markets, strategyCount }: FeaturedMarketPanelProps) => {
   if (!market) {
     return (
       <section className="panel featuredMarketPanel emptyPanel">
@@ -54,6 +56,9 @@ export const FeaturedMarketPanel = ({ market, strategyCount }: FeaturedMarketPan
             <span className="eyebrow">{market.category}</span>
             <h2>{market.question}</h2>
             <p>Trade this live market directly or attach AI entry logic through a creator strategy.</p>
+            <div className="featuredTags">
+              <span className="tag">{market.subcategory}</span>
+            </div>
           </div>
         </div>
         <div className="featuredTags">
@@ -75,6 +80,8 @@ export const FeaturedMarketPanel = ({ market, strategyCount }: FeaturedMarketPan
           <small>{Math.round(market.noPrice * 100)}% implied</small>
         </article>
       </div>
+
+      <MarketGraphsPanel market={market} peerMarkets={markets} />
 
       <div className="marketFactsGrid">
         <div>
