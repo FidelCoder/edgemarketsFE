@@ -197,8 +197,156 @@
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.38), rgba(245, 158, 11, 0.9));
 }
 
+.marketContextPanel,
+.marketContextGrid,
+.marketCommentList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.marketContextHero {
+  min-height: 176px;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+}
+
+.marketContextHeroOverlay {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(7, 11, 18, 0.05), rgba(7, 11, 18, 0.92));
+}
+
+.marketContextHeroOverlay strong {
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.marketContextMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.marketContextMetric,
+.marketContextCard,
+.marketCommentCard {
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  border-radius: 16px;
+  background: rgba(10, 15, 26, 0.84);
+}
+
+.marketContextMetric {
+  padding: 0.82rem 0.85rem;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.marketContextMetric span,
+.marketContextAxisRow span,
+.marketCommentTop span,
+.marketCommentMeta span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.marketContextMetric strong {
+  font-size: 0.98rem;
+}
+
+.marketContextGrid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+}
+
+.marketContextCard {
+  padding: 0.92rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.marketContextCardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.marketContextCardHead h3 {
+  margin: 0.1rem 0 0;
+}
+
+.marketContextChart {
+  width: 100%;
+  height: 220px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(12, 19, 32, 0.94), rgba(8, 13, 22, 0.98)),
+    repeating-linear-gradient(
+      to top,
+      rgba(133, 160, 205, 0.08) 0,
+      rgba(133, 160, 205, 0.08) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+}
+
+.marketContextChartLine {
+  fill: none;
+  stroke: #16c784;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.marketContextAxisRow,
+.marketCommentTop,
+.marketCommentMeta,
+.marketContextFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.marketCommentCard {
+  padding: 0.8rem 0.82rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.marketCommentCard p,
+.marketContextFooter p {
+  margin: 0;
+  color: #dce6f8;
+  line-height: 1.5;
+}
+
+.marketContextFooter {
+  flex-wrap: wrap;
+}
+
+.marketContextFooter a {
+  color: #cfe0ff;
+  font-weight: 700;
+}
+
+.marketContextFooter a:hover {
+  color: #ffffff;
+}
+
 @media (max-width: 760px) {
   .marketGraphsPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .marketContextMetricGrid,
+  .marketContextGrid {
     grid-template-columns: 1fr;
   }
 
@@ -212,5 +360,13 @@
 
   .auditFilterActions button {
     flex: 1;
+  }
+
+  .marketContextAxisRow,
+  .marketCommentTop,
+  .marketCommentMeta,
+  .marketContextFooter {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

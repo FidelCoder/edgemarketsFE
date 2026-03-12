@@ -13,6 +13,7 @@ import {
   FollowStrategyPayload,
   GenerateMarketInsightPayload,
   Market,
+  MarketContext,
   MarketInsight,
   MutationResult,
   OrderQuery,
@@ -173,6 +174,9 @@ const requestWithAuth = async <T>(path: string, sessionToken: string, init?: Req
 
 export const edgeApi = {
   listMarkets: (): Promise<Market[]> => request<Market[]>("/api/markets"),
+
+  getMarketContext: (marketId: string): Promise<MarketContext> =>
+    request<MarketContext>(`/api/markets/${marketId}/context`),
 
   listStablecoins: (): Promise<StablecoinAsset[]> => request<StablecoinAsset[]>("/api/stablecoins"),
 

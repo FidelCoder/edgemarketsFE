@@ -16,6 +16,7 @@ import { AuditFeed, AuditFilterState } from "./audit-feed";
 import { CreateStrategyForm } from "./create-strategy-form";
 import { FeaturedMarketPanel } from "./featured-market-panel";
 import { FollowedStrategies } from "./followed-strategies";
+import { MarketContextPanel } from "./market-context-panel";
 import { MarketHighlightsPanel } from "./market-highlights-panel";
 import { MarketInsightPanel } from "./market-insight-panel";
 import { MarketListPanel } from "./market-list-panel";
@@ -138,6 +139,7 @@ export const DashboardTradingGrid = ({
               markets={markets}
               strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
             />
+            <MarketContextPanel market={selectedMarket} />
           </div>
 
           <div className="marketSignalRail">
