@@ -21,6 +21,8 @@ import {
   MutationResult,
   OrderQuery,
   OrderRecord,
+  PnlLedgerEntry,
+  PnlLedgerSummary,
   PolymarketProfile,
   RuntimeConfig,
   StablecoinAsset,
@@ -231,6 +233,12 @@ export const edgeApi = {
       method: "PUT",
       body: JSON.stringify(payload)
     }),
+
+  listPnlLedgerEntries: (sessionToken: string, limit = 20): Promise<PnlLedgerEntry[]> =>
+    requestWithAuth<PnlLedgerEntry[]>(`/api/pnl-ledger${toQueryString({ limit })}`, sessionToken),
+
+  getPnlLedgerSummary: (sessionToken: string): Promise<PnlLedgerSummary> =>
+    requestWithAuth<PnlLedgerSummary>("/api/pnl-ledger/summary", sessionToken),
 
   getPolymarketProfile: (walletAddress: string): Promise<PolymarketProfile> =>
     request<PolymarketProfile>(`/api/polymarket/profile/${walletAddress}`),

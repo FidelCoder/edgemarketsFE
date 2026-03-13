@@ -9,6 +9,8 @@ import {
   AutomationPlan,
   GenerateAutomationPlanPayload,
   Market,
+  PnlLedgerEntry,
+  PnlLedgerSummary,
   RuntimeConfig
 } from "@/lib/types";
 
@@ -19,6 +21,8 @@ interface AgentAutomationPanelProps {
   plan: AutomationPlan | null;
   session: AgentSession | null;
   evaluation: AgentEvaluationSnapshot | null;
+  pnlSummary: PnlLedgerSummary | null;
+  pnlEntries: PnlLedgerEntry[];
   planPending: boolean;
   executionPending: boolean;
   onGeneratePlan: (payload: GenerateAutomationPlanPayload) => Promise<void>;
@@ -51,6 +55,8 @@ export const AgentAutomationPanel = ({
   plan,
   session,
   evaluation,
+  pnlSummary,
+  pnlEntries,
   planPending,
   executionPending,
   onGeneratePlan,
@@ -282,6 +288,10 @@ export const AgentAutomationPanel = ({
                 <strong>{formatUsd(evaluation.markToMarketPnlUsd)}</strong>
               </div>
               <div>
+                <span>Realized PnL</span>
+                <strong>{formatUsd(evaluation.realizedPnlUsd)}</strong>
+              </div>
+              <div>
                 <span>Drawdown</span>
                 <strong>{formatPercent(evaluation.drawdownPct)}</strong>
               </div>
@@ -296,6 +306,10 @@ export const AgentAutomationPanel = ({
               <div>
                 <span>Loss streak</span>
                 <strong>{evaluation.consecutiveLosses}</strong>
+              </div>
+              <div>
+                <span>Compounding base</span>
+                <strong>{formatUsd(evaluation.compoundingBankrollUsd)}</strong>
               </div>
             </div>
           ) : null}
@@ -353,6 +367,38 @@ export const AgentAutomationPanel = ({
               <strong>{formatUsd(plan.haltRules.dailyLossLimitUsd)}</strong>
             </div>
           </div>
+
+          {pnlSummary ? (
+            <div className="agentPnlSummary">
+              <div className="insightTextBlock">
+                <span>Realized ledger</span>
+                <p>
+                  {pnlSummary.closedTrades} closed trades · {formatUsd(pnlSummary.totalRealizedPnlUsd)} realized ·{" "}
+                  {(pnlSummary.winRate * 100).toFixed(1)}% win rate
+                </p>
+              </div>
+
+              {pnlEntries.length > 0 ? (
+                <div className="agentLedgerList">
+                  {pnlEntries.map((entry) => (
+                    <div key={entry.id} className="agentLedgerRow">
+                      <div>
+                        <strong>{entry.marketId}</strong>
+                        <span>
+                          {entry.outcome} · {entry.source}
+                        </span>
+                      </div>
+                      <div className={entry.realizedPnlUsd >= 0 ? "agentLedgerPositive" : "agentLedgerNegative"}>
+                        {formatUsd(entry.realizedPnlUsd)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="emptyState">No realized exits yet. Closed trades will appear here once the ledger matches buys against sells.</p>
+              )}
+            </div>
+          ) : null}
 
           <div className="agentLegList">
             {plan.legs.map((leg) => (

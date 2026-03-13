@@ -9,6 +9,8 @@ import {
   GenerateAutomationPlanPayload,
   Market,
   OrderRecord,
+  PnlLedgerEntry,
+  PnlLedgerSummary,
   RuntimeConfig,
   AuthSession,
   UpsertAgentSessionPayload
@@ -79,7 +81,8 @@ const countConsecutiveLosses = (orders: OrderRecord[], marketMap: Map<string, Ma
 const evaluateSession = (
   session: AgentSession | null,
   orders: OrderRecord[],
-  markets: Market[]
+  markets: Market[],
+  realizedPnlUsd: number
 ): AgentEvaluationSnapshot | null => {
   if (!session) {
     return null;
@@ -135,13 +138,15 @@ const evaluateSession = (
   return {
     deployedUsd: Number(deployedUsd.toFixed(2)),
     markToMarketPnlUsd: Number(markToMarketPnlUsd.toFixed(2)),
+    realizedPnlUsd: Number(realizedPnlUsd.toFixed(2)),
     dayPnlUsd: Number(dayPnlUsd.toFixed(2)),
     drawdownPct: Number(drawdownPct.toFixed(2)),
     consecutiveLosses,
     haltTriggered: Boolean(haltReason),
     haltReason,
     executedOrders: relevantOrders.length,
-    effectiveBankrollUsd: Number((session.plan.bankrollUsd + markToMarketPnlUsd).toFixed(2))
+    effectiveBankrollUsd: Number((session.plan.bankrollUsd + realizedPnlUsd + markToMarketPnlUsd).toFixed(2)),
+    compoundingBankrollUsd: Number((session.plan.bankrollUsd + realizedPnlUsd).toFixed(2))
   };
 };
 
@@ -156,19 +161,31 @@ export const useAgentAutomation = ({
   onError
 }: UseAgentAutomationOptions) => {
   const [session, setSession] = useState<AgentSession | null>(null);
+  const [pnlSummary, setPnlSummary] = useState<PnlLedgerSummary | null>(null);
+  const [pnlEntries, setPnlEntries] = useState<PnlLedgerEntry[]>([]);
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
   const previousStatusRef = useRef<AgentSession["status"] | null>(null);
+  const realizedPnlUsd = pnlSummary?.totalRealizedPnlUsd ?? 0;
 
   useEffect(() => {
     if (!authSession) {
       setSession(null);
+      setPnlSummary(null);
+      setPnlEntries([]);
       return;
     }
 
-    edgeApi
-      .getAgentSession(authSession.token)
-      .then(setSession)
+    Promise.all([
+      edgeApi.getAgentSession(authSession.token),
+      edgeApi.getPnlLedgerSummary(authSession.token),
+      edgeApi.listPnlLedgerEntries(authSession.token, 6)
+    ])
+      .then(([nextSession, nextPnlSummary, nextPnlEntries]) => {
+        setSession(nextSession);
+        setPnlSummary(nextPnlSummary);
+        setPnlEntries(nextPnlEntries);
+      })
       .catch((error) => {
         onError(error instanceof Error ? error.message : "Could not load persisted agent session.");
       });
@@ -181,13 +198,26 @@ export const useAgentAutomation = ({
 
     const intervalMs = Math.max(runtime.agentWorkerIntervalMs, 5000);
     const timer = window.setInterval(() => {
-      edgeApi.getAgentSession(authSession.token).then(setSession).catch(() => undefined);
+      Promise.all([
+        edgeApi.getAgentSession(authSession.token),
+        edgeApi.getPnlLedgerSummary(authSession.token),
+        edgeApi.listPnlLedgerEntries(authSession.token, 6)
+      ])
+        .then(([nextSession, nextPnlSummary, nextPnlEntries]) => {
+          setSession(nextSession);
+          setPnlSummary(nextPnlSummary);
+          setPnlEntries(nextPnlEntries);
+        })
+        .catch(() => undefined);
     }, intervalMs);
 
     return () => window.clearInterval(timer);
   }, [authSession, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
 
-  const evaluation = useMemo(() => evaluateSession(session, orders, markets), [session, orders, markets]);
+  const evaluation = useMemo(
+    () => evaluateSession(session, orders, markets, realizedPnlUsd),
+    [markets, orders, realizedPnlUsd, session]
+  );
 
   const persistSession = async (
     nextSession: AgentSession,
@@ -207,6 +237,12 @@ export const useAgentAutomation = ({
     };
     const saved = await edgeApi.upsertAgentSession(authSession.token, payload);
     setSession(saved);
+    const [nextPnlSummary, nextPnlEntries] = await Promise.all([
+      edgeApi.getPnlLedgerSummary(authSession.token),
+      edgeApi.listPnlLedgerEntries(authSession.token, 6)
+    ]);
+    setPnlSummary(nextPnlSummary);
+    setPnlEntries(nextPnlEntries);
     return saved;
   };
 
@@ -286,7 +322,7 @@ export const useAgentAutomation = ({
     };
 
     try {
-      const haltedEvaluation = evaluateSession(halted, orders, markets);
+      const haltedEvaluation = evaluateSession(halted, orders, markets, realizedPnlUsd);
       await persistSession(halted, haltedEvaluation);
       onStatus(reason);
     } catch (error) {
@@ -325,14 +361,17 @@ export const useAgentAutomation = ({
 
     try {
       const context = await ensureLiveContext();
-      workingSession = await persistSession(workingSession, evaluateSession(workingSession, latestOrders, markets));
+      workingSession = await persistSession(
+        workingSession,
+        evaluateSession(workingSession, latestOrders, markets, realizedPnlUsd)
+      );
 
       for (const leg of workingSession.plan.legs) {
         if (workingSession.executedMarketIds.includes(leg.marketId)) {
           continue;
         }
 
-        const currentEvaluation = evaluateSession(workingSession, latestOrders, markets);
+        const currentEvaluation = evaluateSession(workingSession, latestOrders, markets, realizedPnlUsd);
         if (currentEvaluation?.haltTriggered) {
           await haltSession(currentEvaluation.haltReason ?? "Agent halt rule triggered.", workingSession);
           return;
@@ -359,7 +398,10 @@ export const useAgentAutomation = ({
         };
         latestOrders = await edgeApi.listOrders(authSession.token, { limit: 40 });
         onOrdersChange(latestOrders);
-        workingSession = await persistSession(workingSession, evaluateSession(workingSession, latestOrders, markets));
+        workingSession = await persistSession(
+          workingSession,
+          evaluateSession(workingSession, latestOrders, markets, realizedPnlUsd)
+        );
       }
 
       onStatus(`Agent submitted ${workingSession.executedMarketIds.length} live legs.`);
@@ -376,6 +418,8 @@ export const useAgentAutomation = ({
     session,
     plan: session?.plan ?? null,
     evaluation,
+    pnlSummary,
+    pnlEntries,
     planPending,
     executionPending,
     generatePlan,

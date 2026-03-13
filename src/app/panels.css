@@ -337,6 +337,7 @@
 .agentPanel,
 .agentSessionSummary,
 .agentPlanBody,
+.agentPnlSummary,
 .agentLegList,
 .agentLegCard {
   display: grid;
@@ -416,6 +417,40 @@
 
 .agentLegFooter span:nth-child(2) {
   color: #93f1c3;
+}
+
+.agentLedgerList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.agentLedgerRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.72rem 0.78rem;
+  border-radius: 14px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.agentLedgerRow > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.agentLedgerRow span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.agentLedgerPositive {
+  color: #93f1c3;
+}
+
+.agentLedgerNegative {
+  color: #ffbcc6;
 }
 
 .marketCommentCard p,
