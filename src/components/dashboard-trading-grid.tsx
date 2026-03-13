@@ -228,10 +228,18 @@ export const DashboardTradingGrid = ({
           agentReviews={agentAutomation.agentReviews}
           reviewFilter={agentAutomation.reviewFilter}
           reviewLimit={agentAutomation.reviewLimit}
+          analyticsDateFrom={agentAutomation.analyticsDateFrom}
+          analyticsDateTo={agentAutomation.analyticsDateTo}
           planPending={agentAutomation.planPending}
           executionPending={agentAutomation.executionPending}
+          exportingPnl={agentAutomation.exportingPnl}
+          exportingReviews={agentAutomation.exportingReviews}
           onReviewFilterChange={agentAutomation.setReviewFilter}
           onReviewLimitChange={agentAutomation.setReviewLimit}
+          onAnalyticsDateFromChange={agentAutomation.setAnalyticsDateFrom}
+          onAnalyticsDateToChange={agentAutomation.setAnalyticsDateTo}
+          onExportPnl={agentAutomation.exportPnl}
+          onExportReviews={agentAutomation.exportReviews}
           onGeneratePlan={agentAutomation.generatePlan}
           onExecutePlan={agentAutomation.executePlan}
           onHaltPlan={() => agentAutomation.haltSession()}
@@ -250,6 +258,7 @@ export const DashboardTradingGrid = ({
           profile={profile}
           allowanceSummary={allowanceSummary}
           isWalletConnecting={walletConnecting}
+          ensureLiveContext={ensureLiveContext}
           onConnectWallet={onConnectWallet}
         />
         <OrderLifecyclePanel orders={orders} syncing={orderSyncing} onRefresh={onRefreshOrders} />

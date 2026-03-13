@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { edgeApi } from "@/lib/api";
+import { AgentReviewQueryOptions, PnlLedgerQueryOptions } from "@/lib/analytics-types";
 import { placeLiveMarketOrder, type LiveClobContext } from "@/lib/polymarket";
 import {
   AgentEvaluationSnapshot,
@@ -32,6 +33,8 @@ interface UseAgentAutomationOptions {
 }
 
 const todayKey = (): string => new Date().toISOString().slice(0, 10);
+const defaultLedgerLimit = 6;
+const defaultRollupLimit = 5;
 
 const isBuyOrder = (order: OrderRecord): boolean => order.side === "BUY";
 
@@ -172,11 +175,71 @@ export const useAgentAutomation = ({
   const [agentReviews, setAgentReviews] = useState<AgentReviewRecord[]>([]);
   const [reviewFilter, setReviewFilter] = useState<AgentReviewDecision | "all">("all");
   const [reviewLimit, setReviewLimit] = useState(8);
+  const [analyticsDateFrom, setAnalyticsDateFrom] = useState("");
+  const [analyticsDateTo, setAnalyticsDateTo] = useState("");
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
+  const [exportingPnl, setExportingPnl] = useState(false);
+  const [exportingReviews, setExportingReviews] = useState(false);
   const previousStatusRef = useRef<AgentSession["status"] | null>(null);
   const realizedPnlUsd = pnlSummary?.totalRealizedPnlUsd ?? 0;
   const filteredReviewDecision = reviewFilter === "all" ? undefined : reviewFilter;
+  const analyticsRange = useMemo(
+    () => ({
+      dateFrom: analyticsDateFrom || undefined,
+      dateTo: analyticsDateTo || undefined
+    }),
+    [analyticsDateFrom, analyticsDateTo]
+  );
+  const pnlQuery = useMemo<PnlLedgerQueryOptions>(
+    () => ({
+      ...analyticsRange,
+      limit: defaultLedgerLimit
+    }),
+    [analyticsRange]
+  );
+  const reviewQuery = useMemo<AgentReviewQueryOptions>(
+    () => ({
+      ...analyticsRange,
+      decision: filteredReviewDecision,
+      limit: reviewLimit
+    }),
+    [analyticsRange, filteredReviewDecision, reviewLimit]
+  );
+
+  const applyAnalyticsState = (
+    nextSession: AgentSession | null,
+    nextPnlSummary: PnlLedgerSummary,
+    nextPnlEntries: PnlLedgerEntry[],
+    nextPnlRollups: PnlLedgerRollups,
+    nextAgentReviewSummary: AgentReviewSummary,
+    nextAgentReviews: AgentReviewRecord[]
+  ) => {
+    setSession(nextSession);
+    setPnlSummary(nextPnlSummary);
+    setPnlEntries(nextPnlEntries);
+    setPnlRollups(nextPnlRollups);
+    setAgentReviewSummary(nextAgentReviewSummary);
+    setAgentReviews(nextAgentReviews);
+  };
+
+  const loadAnalytics = async (sessionToken: string, nextSession?: AgentSession | null): Promise<void> => {
+    const [nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews] = await Promise.all([
+      edgeApi.getPnlLedgerSummary(sessionToken, analyticsRange),
+      edgeApi.listPnlLedgerEntries(sessionToken, pnlQuery),
+      edgeApi.getPnlLedgerRollups(sessionToken, { ...analyticsRange, limit: defaultRollupLimit }),
+      edgeApi.getAgentReviewSummary(sessionToken, reviewQuery),
+      edgeApi.listAgentReviews(sessionToken, reviewQuery)
+    ]);
+    applyAnalyticsState(
+      nextSession ?? session ?? null,
+      nextPnlSummary,
+      nextPnlEntries,
+      nextPnlRollups,
+      nextAgentReviewSummary,
+      nextAgentReviews
+    );
+  };
 
   useEffect(() => {
     if (!authSession) {
@@ -189,26 +252,13 @@ export const useAgentAutomation = ({
       return;
     }
 
-    Promise.all([
-      edgeApi.getAgentSession(authSession.token),
-      edgeApi.getPnlLedgerSummary(authSession.token),
-      edgeApi.listPnlLedgerEntries(authSession.token, 6),
-      edgeApi.getPnlLedgerRollups(authSession.token, 5),
-      edgeApi.getAgentReviewSummary(authSession.token),
-      edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
-    ])
-      .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews]) => {
-        setSession(nextSession);
-        setPnlSummary(nextPnlSummary);
-        setPnlEntries(nextPnlEntries);
-        setPnlRollups(nextPnlRollups);
-        setAgentReviewSummary(nextAgentReviewSummary);
-        setAgentReviews(nextAgentReviews);
-      })
+    edgeApi
+      .getAgentSession(authSession.token)
+      .then((nextSession) => loadAnalytics(authSession.token, nextSession))
       .catch((error) => {
         onError(error instanceof Error ? error.message : "Could not load persisted agent session.");
       });
-  }, [authSession, filteredReviewDecision, onError, reviewLimit]);
+  }, [analyticsRange, authSession, onError, pnlQuery, reviewQuery]);
 
   useEffect(() => {
     if (!authSession || !runtime?.agentWorkerEnabled || session?.status !== "running") {
@@ -217,27 +267,14 @@ export const useAgentAutomation = ({
 
     const intervalMs = Math.max(runtime.agentWorkerIntervalMs, 5000);
     const timer = window.setInterval(() => {
-      Promise.all([
-        edgeApi.getAgentSession(authSession.token),
-        edgeApi.getPnlLedgerSummary(authSession.token),
-        edgeApi.listPnlLedgerEntries(authSession.token, 6),
-        edgeApi.getPnlLedgerRollups(authSession.token, 5),
-        edgeApi.getAgentReviewSummary(authSession.token),
-        edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
-      ])
-        .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews]) => {
-          setSession(nextSession);
-          setPnlSummary(nextPnlSummary);
-          setPnlEntries(nextPnlEntries);
-          setPnlRollups(nextPnlRollups);
-          setAgentReviewSummary(nextAgentReviewSummary);
-          setAgentReviews(nextAgentReviews);
-        })
+      edgeApi
+        .getAgentSession(authSession.token)
+        .then((nextSession) => loadAnalytics(authSession.token, nextSession))
         .catch(() => undefined);
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [authSession, filteredReviewDecision, reviewLimit, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
+  }, [analyticsRange, authSession, pnlQuery, reviewQuery, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
 
   const evaluation = useMemo(
     () => evaluateSession(session, orders, markets, realizedPnlUsd),
@@ -262,18 +299,7 @@ export const useAgentAutomation = ({
     };
     const saved = await edgeApi.upsertAgentSession(authSession.token, payload);
     setSession(saved);
-    const [nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews] = await Promise.all([
-      edgeApi.getPnlLedgerSummary(authSession.token),
-      edgeApi.listPnlLedgerEntries(authSession.token, 6),
-      edgeApi.getPnlLedgerRollups(authSession.token, 5),
-      edgeApi.getAgentReviewSummary(authSession.token),
-      edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
-    ]);
-    setPnlSummary(nextPnlSummary);
-    setPnlEntries(nextPnlEntries);
-    setPnlRollups(nextPnlRollups);
-    setAgentReviewSummary(nextAgentReviewSummary);
-    setAgentReviews(nextAgentReviews);
+    await loadAnalytics(authSession.token, saved);
     return saved;
   };
 
@@ -445,6 +471,53 @@ export const useAgentAutomation = ({
     }
   };
 
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportPnl = async () => {
+    if (!authSession) {
+      onError("Connect a wallet before exporting analytics.");
+      return;
+    }
+
+    setExportingPnl(true);
+
+    try {
+      const blob = await edgeApi.downloadPnlLedgerCsv(authSession.token, analyticsRange);
+      downloadBlob(blob, "edge-pnl-ledger.csv");
+      onStatus("PnL ledger CSV downloaded.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Could not export PnL ledger.");
+    } finally {
+      setExportingPnl(false);
+    }
+  };
+
+  const exportReviews = async () => {
+    if (!authSession) {
+      onError("Connect a wallet before exporting analytics.");
+      return;
+    }
+
+    setExportingReviews(true);
+
+    try {
+      const blob = await edgeApi.downloadAgentReviewsCsv(authSession.token, reviewQuery);
+      downloadBlob(blob, "edge-agent-reviews.csv");
+      onStatus("Agent review CSV downloaded.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Could not export agent reviews.");
+    } finally {
+      setExportingReviews(false);
+    }
+  };
+
   return {
     session,
     plan: session?.plan ?? null,
@@ -456,12 +529,20 @@ export const useAgentAutomation = ({
     agentReviews,
     reviewFilter,
     reviewLimit,
+    analyticsDateFrom,
+    analyticsDateTo,
     planPending,
     executionPending,
+    exportingPnl,
+    exportingReviews,
     setReviewFilter,
     setReviewLimit,
+    setAnalyticsDateFrom,
+    setAnalyticsDateTo,
     generatePlan,
     executePlan,
-    haltSession
+    haltSession,
+    exportPnl,
+    exportReviews
   };
 };

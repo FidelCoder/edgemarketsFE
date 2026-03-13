@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "./config";
+import { AgentReviewQueryOptions, PnlLedgerQueryOptions } from "./analytics-types";
 import {
   AgentReviewRecord,
   AgentReviewSummary,
@@ -206,6 +207,37 @@ const requestWithAuthMaybe = async <T>(path: string, sessionToken: string, init?
   return body.data ?? null;
 };
 
+const downloadWithAuth = async (path: string, sessionToken: string): Promise<Blob> => {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      buildRequest(path, {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`
+        }
+      })
+    );
+  } catch (error) {
+    throw toNetworkError(error);
+  }
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}.`;
+
+    try {
+      const body = (await response.json()) as ApiEnvelope<null>;
+      message = body.error?.message ?? message;
+    } catch {
+      message = response.statusText || message;
+    }
+
+    throw new Error(message);
+  }
+
+  return response.blob();
+};
+
 export const edgeApi = {
   listMarkets: (): Promise<Market[]> => request<Market[]>("/api/markets"),
 
@@ -239,24 +271,77 @@ export const edgeApi = {
 
   listAgentReviews: (
     sessionToken: string,
-    options?: { limit?: number; decision?: "hold" | "halt" }
+    options: AgentReviewQueryOptions = {}
   ): Promise<AgentReviewRecord[]> =>
     requestWithAuth<AgentReviewRecord[]>(
-      `/api/agent/reviews${toQueryString({ limit: options?.limit, decision: options?.decision })}`,
+      `/api/agent/reviews${toQueryString({
+        limit: options.limit,
+        decision: options.decision,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
       sessionToken
     ),
 
-  getAgentReviewSummary: (sessionToken: string): Promise<AgentReviewSummary> =>
-    requestWithAuth<AgentReviewSummary>("/api/agent/reviews/summary", sessionToken),
+  getAgentReviewSummary: (sessionToken: string, options: AgentReviewQueryOptions = {}): Promise<AgentReviewSummary> =>
+    requestWithAuth<AgentReviewSummary>(
+      `/api/agent/reviews/summary${toQueryString({
+        decision: options.decision,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
 
-  listPnlLedgerEntries: (sessionToken: string, limit = 20): Promise<PnlLedgerEntry[]> =>
-    requestWithAuth<PnlLedgerEntry[]>(`/api/pnl-ledger${toQueryString({ limit })}`, sessionToken),
+  downloadAgentReviewsCsv: (sessionToken: string, options: AgentReviewQueryOptions = {}): Promise<Blob> =>
+    downloadWithAuth(
+      `/api/agent/reviews/export${toQueryString({
+        limit: options.limit,
+        decision: options.decision,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
 
-  getPnlLedgerSummary: (sessionToken: string): Promise<PnlLedgerSummary> =>
-    requestWithAuth<PnlLedgerSummary>("/api/pnl-ledger/summary", sessionToken),
+  listPnlLedgerEntries: (sessionToken: string, options: PnlLedgerQueryOptions = {}): Promise<PnlLedgerEntry[]> =>
+    requestWithAuth<PnlLedgerEntry[]>(
+      `/api/pnl-ledger${toQueryString({
+        limit: options.limit,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
 
-  getPnlLedgerRollups: (sessionToken: string, limit = 5): Promise<PnlLedgerRollups> =>
-    requestWithAuth<PnlLedgerRollups>(`/api/pnl-ledger/rollups${toQueryString({ limit })}`, sessionToken),
+  getPnlLedgerSummary: (sessionToken: string, options: PnlLedgerQueryOptions = {}): Promise<PnlLedgerSummary> =>
+    requestWithAuth<PnlLedgerSummary>(
+      `/api/pnl-ledger/summary${toQueryString({
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
+
+  getPnlLedgerRollups: (sessionToken: string, options: PnlLedgerQueryOptions = {}): Promise<PnlLedgerRollups> =>
+    requestWithAuth<PnlLedgerRollups>(
+      `/api/pnl-ledger/rollups${toQueryString({
+        limit: options.limit,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
+
+  downloadPnlLedgerCsv: (sessionToken: string, options: PnlLedgerQueryOptions = {}): Promise<Blob> =>
+    downloadWithAuth(
+      `/api/pnl-ledger/export${toQueryString({
+        limit: options.limit,
+        dateFrom: options.dateFrom,
+        dateTo: options.dateTo
+      })}`,
+      sessionToken
+    ),
 
   getPolymarketProfile: (walletAddress: string): Promise<PolymarketProfile> =>
     request<PolymarketProfile>(`/api/polymarket/profile/${walletAddress}`),

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { runWalletPreflight, type LiveClobContext, type WalletPreflightStatus } from "@/lib/polymarket";
 import { AuthSession, PolymarketProfile } from "@/lib/types";
 
 interface TradingSessionPanelProps {
@@ -6,6 +8,7 @@ interface TradingSessionPanelProps {
   profile: PolymarketProfile | null;
   allowanceSummary: { balance: string; allowance: string } | null;
   isWalletConnecting: boolean;
+  ensureLiveContext: () => Promise<LiveClobContext>;
   onConnectWallet: () => void;
 }
 
@@ -23,8 +26,27 @@ export const TradingSessionPanel = ({
   profile,
   allowanceSummary,
   isWalletConnecting,
+  ensureLiveContext,
   onConnectWallet
 }: TradingSessionPanelProps) => {
+  const [preflight, setPreflight] = useState<WalletPreflightStatus | null>(null);
+  const [preflightPending, setPreflightPending] = useState(false);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
+
+  const handleRunPreflight = async () => {
+    setPreflightPending(true);
+    setPreflightError(null);
+
+    try {
+      const context = await ensureLiveContext();
+      setPreflight(await runWalletPreflight(context));
+    } catch (error) {
+      setPreflightError(error instanceof Error ? error.message : "Wallet preflight failed.");
+    } finally {
+      setPreflightPending(false);
+    }
+  };
+
   return (
     <section className="panel railPanel">
       <div className="panelHeaderRow">
@@ -66,7 +88,51 @@ export const TradingSessionPanel = ({
         <button onClick={onConnectWallet} disabled={isWalletConnecting}>
           {isWalletConnecting ? "Connecting..." : "Connect Wallet"}
         </button>
-      ) : null}
+      ) : (
+        <>
+          <button className="ghostAction" onClick={() => void handleRunPreflight()} disabled={preflightPending}>
+            {preflightPending ? "Checking..." : "Run Wallet Preflight"}
+          </button>
+
+          {preflightError ? <p className="emptyState">{preflightError}</p> : null}
+
+          {preflight ? (
+            <div className="walletPreflightPanel">
+              <div className="walletPreflightHeader">
+                <strong>{preflight.readyForLiveTrading ? "Wallet ready" : "Wallet needs funding"}</strong>
+                <span>{new Date(preflight.checkedAt).toLocaleString()}</span>
+              </div>
+
+              <div className="sessionGrid">
+                <div className="sessionMeta">
+                  <span>Funder</span>
+                  <strong>{shortWallet(preflight.funderAddress)}</strong>
+                </div>
+                <div className="sessionMeta">
+                  <span>Proxy</span>
+                  <strong>{shortWallet(preflight.proxyWalletAddress)}</strong>
+                </div>
+                <div className="sessionMeta">
+                  <span>Balance</span>
+                  <strong>{preflight.balance}</strong>
+                </div>
+                <div className="sessionMeta">
+                  <span>Allowance</span>
+                  <strong>{preflight.allowance}</strong>
+                </div>
+              </div>
+
+              {preflight.warnings.length > 0 ? (
+                <div className="walletPreflightWarnings">
+                  {preflight.warnings.map((warning) => (
+                    <span key={warning}>{warning}</span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      )}
     </section>
   );
 };
