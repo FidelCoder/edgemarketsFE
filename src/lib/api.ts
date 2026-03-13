@@ -1,5 +1,6 @@
 import { apiBaseUrl } from "./config";
 import {
+  AgentSession,
   ApiEnvelope,
   AutomationPlan,
   AuditLog,
@@ -24,6 +25,7 @@ import {
   RuntimeConfig,
   StablecoinAsset,
   Strategy,
+  UpsertAgentSessionPayload,
   TriggerJob
 } from "./types";
 
@@ -174,6 +176,31 @@ const requestWithAuth = async <T>(path: string, sessionToken: string, init?: Req
   });
 };
 
+const requestWithAuthMaybe = async <T>(path: string, sessionToken: string, init?: RequestInit): Promise<T | null> => {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      buildRequest(path, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          ...(init?.headers ?? {})
+        }
+      })
+    );
+  } catch (error) {
+    throw toNetworkError(error);
+  }
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  const body = await parseEnvelope<T | null>(response);
+  return body.data ?? null;
+};
+
 export const edgeApi = {
   listMarkets: (): Promise<Market[]> => request<Market[]>("/api/markets"),
 
@@ -193,6 +220,15 @@ export const edgeApi = {
   generateAutomationPlan: (payload: GenerateAutomationPlanPayload): Promise<AutomationPlan> =>
     request<AutomationPlan>("/api/ai/automation-plan", {
       method: "POST",
+      body: JSON.stringify(payload)
+    }),
+
+  getAgentSession: (sessionToken: string): Promise<AgentSession | null> =>
+    requestWithAuthMaybe<AgentSession>("/api/agent/session", sessionToken),
+
+  upsertAgentSession: (sessionToken: string, payload: UpsertAgentSessionPayload): Promise<AgentSession> =>
+    requestWithAuth<AgentSession>("/api/agent/session", sessionToken, {
+      method: "PUT",
       body: JSON.stringify(payload)
     }),
 

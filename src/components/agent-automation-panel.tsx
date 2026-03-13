@@ -3,21 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AiProvider,
+  AgentEvaluationSnapshot,
+  AgentSession,
   AuthSession,
   AutomationPlan,
   GenerateAutomationPlanPayload,
   Market,
   RuntimeConfig
 } from "@/lib/types";
-import { AgentAutomationEvaluation, AgentAutomationSession } from "./use-agent-automation";
 
 interface AgentAutomationPanelProps {
   runtime: RuntimeConfig | null;
   authSession: AuthSession | null;
   markets: Market[];
   plan: AutomationPlan | null;
-  session: AgentAutomationSession | null;
-  evaluation: AgentAutomationEvaluation | null;
+  session: AgentSession | null;
+  evaluation: AgentEvaluationSnapshot | null;
   planPending: boolean;
   executionPending: boolean;
   onGeneratePlan: (payload: GenerateAutomationPlanPayload) => Promise<void>;

@@ -4,37 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { edgeApi } from "@/lib/api";
 import { placeLiveMarketOrder, type LiveClobContext } from "@/lib/polymarket";
 import {
-  AutomationPlan,
+  AgentEvaluationSnapshot,
+  AgentSession,
   GenerateAutomationPlanPayload,
   Market,
   OrderRecord,
   RuntimeConfig,
-  AuthSession
+  AuthSession,
+  UpsertAgentSessionPayload
 } from "@/lib/types";
-
-export type AgentSessionStatus = "draft" | "running" | "halted";
-
-export interface AgentAutomationSession {
-  plan: AutomationPlan;
-  status: AgentSessionStatus;
-  executedOrderIds: string[];
-  executedMarketIds: string[];
-  haltReason?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AgentAutomationEvaluation {
-  deployedUsd: number;
-  markToMarketPnlUsd: number;
-  dayPnlUsd: number;
-  drawdownPct: number;
-  consecutiveLosses: number;
-  haltTriggered: boolean;
-  haltReason?: string;
-  executedOrders: number;
-  effectiveBankrollUsd: number;
-}
 
 interface UseAgentAutomationOptions {
   runtime: RuntimeConfig | null;
@@ -46,8 +24,6 @@ interface UseAgentAutomationOptions {
   onStatus: (message: string) => void;
   onError: (message: string) => void;
 }
-
-const storageKey = "edge-agent-session-v1";
 
 const todayKey = (): string => new Date().toISOString().slice(0, 10);
 
@@ -84,10 +60,10 @@ const countConsecutiveLosses = (orders: OrderRecord[], marketMap: Map<string, Ma
 };
 
 const evaluateSession = (
-  session: AgentAutomationSession | null,
+  session: AgentSession | null,
   orders: OrderRecord[],
   markets: Market[]
-): AgentAutomationEvaluation | null => {
+): AgentEvaluationSnapshot | null => {
   if (!session) {
     return null;
   }
@@ -152,24 +128,6 @@ const evaluateSession = (
   };
 };
 
-const readStoredSession = (): AgentAutomationSession | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(storageKey);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as AgentAutomationSession;
-  } catch {
-    window.localStorage.removeItem(storageKey);
-    return null;
-  }
-};
-
 export const useAgentAutomation = ({
   runtime,
   authSession,
@@ -180,44 +138,62 @@ export const useAgentAutomation = ({
   onStatus,
   onError
 }: UseAgentAutomationOptions) => {
-  const [session, setSession] = useState<AgentAutomationSession | null>(null);
+  const [session, setSession] = useState<AgentSession | null>(null);
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
 
   useEffect(() => {
-    setSession(readStoredSession());
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!authSession) {
+      setSession(null);
       return;
     }
 
-    if (!session) {
-      window.localStorage.removeItem(storageKey);
-      return;
-    }
-
-    window.localStorage.setItem(storageKey, JSON.stringify(session));
-  }, [session]);
+    edgeApi
+      .getAgentSession(authSession.token)
+      .then(setSession)
+      .catch((error) => {
+        onError(error instanceof Error ? error.message : "Could not load persisted agent session.");
+      });
+  }, [authSession, onError]);
 
   const evaluation = useMemo(() => evaluateSession(session, orders, markets), [session, orders, markets]);
+
+  const persistSession = async (
+    nextSession: AgentSession,
+    nextEvaluation?: AgentEvaluationSnapshot | null
+  ): Promise<AgentSession> => {
+    if (!authSession) {
+      throw new Error("Connect a wallet before persisting the agent session.");
+    }
+
+    const payload: UpsertAgentSessionPayload = {
+      status: nextSession.status,
+      plan: nextSession.plan,
+      executedOrderIds: nextSession.executedOrderIds,
+      executedMarketIds: nextSession.executedMarketIds,
+      haltReason: nextSession.haltReason,
+      lastEvaluation: nextEvaluation ?? undefined
+    };
+    const saved = await edgeApi.upsertAgentSession(authSession.token, payload);
+    setSession(saved);
+    return saved;
+  };
 
   useEffect(() => {
     if (!session || session.status === "halted" || !evaluation?.haltTriggered) {
       return;
     }
 
-    const halted: AgentAutomationSession = {
+    const halted: AgentSession = {
       ...session,
       status: "halted",
       haltReason: evaluation.haltReason,
       updatedAt: new Date().toISOString()
     };
-
-    setSession(halted);
-    onStatus(evaluation.haltReason ?? "Agent halted.");
-  }, [evaluation?.haltReason, evaluation?.haltTriggered, onStatus, session]);
+    void persistSession(halted, evaluation)
+      .then(() => onStatus(evaluation.haltReason ?? "Agent halted."))
+      .catch((error) => onError(error instanceof Error ? error.message : "Could not persist halted agent session."));
+  }, [evaluation, onError, onStatus, session]);
 
   const generatePlan = async (payload: GenerateAutomationPlanPayload) => {
     if (!runtime?.aiEnabled) {
@@ -225,11 +201,19 @@ export const useAgentAutomation = ({
       return;
     }
 
+    if (!authSession) {
+      onError("Connect a wallet before creating a persisted agent plan.");
+      return;
+    }
+
     setPlanPending(true);
 
     try {
       const plan = await edgeApi.generateAutomationPlan(payload);
-      const nextSession: AgentAutomationSession = {
+      const nextSession: AgentSession = {
+        id: "",
+        userId: authSession.userId,
+        walletAddress: authSession.walletAddress,
         plan,
         status: "draft",
         executedOrderIds: [],
@@ -237,8 +221,7 @@ export const useAgentAutomation = ({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
-      setSession(nextSession);
+      await persistSession(nextSession);
       onStatus(`Agent plan generated with ${plan.legs.length} market legs.`);
     } catch (error) {
       onError(error instanceof Error ? error.message : "Could not generate agent plan.");
@@ -247,20 +230,27 @@ export const useAgentAutomation = ({
     }
   };
 
-  const haltSession = (reason = "Agent halted manually.", baseSession?: AgentAutomationSession) => {
+  const haltSession = async (reason = "Agent halted manually.", baseSession?: AgentSession) => {
     const targetSession = baseSession ?? session;
 
     if (!targetSession) {
       return;
     }
 
-    setSession({
+    const halted: AgentSession = {
       ...targetSession,
       status: "halted",
       haltReason: reason,
       updatedAt: new Date().toISOString()
-    });
-    onStatus(reason);
+    };
+
+    try {
+      const haltedEvaluation = evaluateSession(halted, orders, markets);
+      await persistSession(halted, haltedEvaluation);
+      onStatus(reason);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Could not halt the agent session.");
+    }
   };
 
   const executePlan = async () => {
@@ -285,7 +275,7 @@ export const useAgentAutomation = ({
     }
 
     setExecutionPending(true);
-    let workingSession: AgentAutomationSession = {
+    let workingSession: AgentSession = {
       ...session,
       status: "running",
       updatedAt: new Date().toISOString()
@@ -294,7 +284,7 @@ export const useAgentAutomation = ({
 
     try {
       const context = await ensureLiveContext();
-      setSession(workingSession);
+      workingSession = await persistSession(workingSession, evaluateSession(workingSession, latestOrders, markets));
 
       for (const leg of workingSession.plan.legs) {
         if (workingSession.executedMarketIds.includes(leg.marketId)) {
@@ -303,7 +293,7 @@ export const useAgentAutomation = ({
 
         const currentEvaluation = evaluateSession(workingSession, latestOrders, markets);
         if (currentEvaluation?.haltTriggered) {
-          haltSession(currentEvaluation.haltReason ?? "Agent halt rule triggered.", workingSession);
+          await haltSession(currentEvaluation.haltReason ?? "Agent halt rule triggered.", workingSession);
           return;
         }
 
@@ -326,16 +316,15 @@ export const useAgentAutomation = ({
           executedMarketIds: [...workingSession.executedMarketIds, leg.marketId],
           updatedAt: new Date().toISOString()
         };
-        setSession(workingSession);
-
         latestOrders = await edgeApi.listOrders(authSession.token, { limit: 40 });
         onOrdersChange(latestOrders);
+        workingSession = await persistSession(workingSession, evaluateSession(workingSession, latestOrders, markets));
       }
 
       onStatus(`Agent submitted ${workingSession.executedMarketIds.length} live legs.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not execute agent plan.";
-      haltSession(`Execution stopped: ${message}`, workingSession);
+      await haltSession(`Execution stopped: ${message}`, workingSession);
       onError(message);
     } finally {
       setExecutionPending(false);
