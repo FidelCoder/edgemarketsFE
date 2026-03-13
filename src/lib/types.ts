@@ -146,6 +146,9 @@ export interface RuntimeConfig {
   triggerWorkerEnabled: boolean;
   triggerWorkerIntervalMs: number;
   triggerWorkerBatchSize: number;
+  agentWorkerEnabled: boolean;
+  agentWorkerIntervalMs: number;
+  agentWorkerBatchSize: number;
   supportedStablecoins: StablecoinSymbol[];
   aiEnabled: boolean;
   aiDefaultProvider: AiProvider | null;
@@ -276,6 +279,7 @@ export interface AgentSession {
   executedMarketIds: string[];
   haltReason?: string;
   lastEvaluation?: AgentEvaluationSnapshot;
+  lastReviewedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -457,6 +461,7 @@ export interface CreatorPerformanceSummary {
 }
 
 export interface OrderQuery {
+  userId?: string;
   strategyId?: string;
   creatorHandle?: string;
   status?: OrderLifecycleStatus;

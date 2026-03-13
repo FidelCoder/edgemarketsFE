@@ -128,6 +128,7 @@ export const AgentAutomationPanel = ({
         <div className="featuredTags">
           <span className="tag">{selectedProvider?.label ?? "AI"}</span>
           <span className="tag">{runtime?.executionMode === "live" ? "Live execution" : "Live mode needed"}</span>
+          <span className="tag">{runtime?.agentWorkerEnabled ? "Auto-review on" : "Auto-review off"}</span>
           <span className="tag">{authSession ? "Wallet ready" : "Wallet needed"}</span>
         </div>
       </div>
@@ -267,6 +268,10 @@ export const AgentAutomationPanel = ({
             <div>
               <span>Rebalance</span>
               <strong>{session.plan.rebalanceIntervalHours}h</strong>
+            </div>
+            <div>
+              <span>Last review</span>
+              <strong>{session.lastReviewedAt ? new Date(session.lastReviewedAt).toLocaleString() : "--"}</strong>
             </div>
           </div>
 

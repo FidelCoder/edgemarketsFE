@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { edgeApi } from "@/lib/api";
 import { placeLiveMarketOrder, type LiveClobContext } from "@/lib/polymarket";
 import {
@@ -28,6 +28,23 @@ interface UseAgentAutomationOptions {
 const todayKey = (): string => new Date().toISOString().slice(0, 10);
 
 const isBuyOrder = (order: OrderRecord): boolean => order.side === "BUY";
+
+const isExposedOrder = (order: OrderRecord): boolean => {
+  if (!isBuyOrder(order) || order.source !== "agent") {
+    return false;
+  }
+
+  if (order.status === "failed" || order.tradeStatus === "FAILED") {
+    return false;
+  }
+
+  return (
+    order.status === "filled" ||
+    order.tradeStatus === "MATCHED" ||
+    order.tradeStatus === "MINED" ||
+    order.tradeStatus === "CONFIRMED"
+  );
+};
 
 const getMarketPriceForOrder = (order: OrderRecord, market: Market): number => {
   return order.outcome === "YES" ? market.yesPrice : market.noPrice;
@@ -70,7 +87,7 @@ const evaluateSession = (
 
   const marketMap = new Map(markets.map((market) => [market.id, market]));
   const relevantOrders = orders.filter((order) => {
-    return order.source === "agent" && session.executedOrderIds.includes(order.id);
+    return isExposedOrder(order) && session.executedOrderIds.includes(order.id);
   });
 
   const markToMarketPnlUsd = relevantOrders.reduce((sum, order) => {
@@ -141,6 +158,7 @@ export const useAgentAutomation = ({
   const [session, setSession] = useState<AgentSession | null>(null);
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
+  const previousStatusRef = useRef<AgentSession["status"] | null>(null);
 
   useEffect(() => {
     if (!authSession) {
@@ -155,6 +173,19 @@ export const useAgentAutomation = ({
         onError(error instanceof Error ? error.message : "Could not load persisted agent session.");
       });
   }, [authSession, onError]);
+
+  useEffect(() => {
+    if (!authSession || !runtime?.agentWorkerEnabled || session?.status !== "running") {
+      return;
+    }
+
+    const intervalMs = Math.max(runtime.agentWorkerIntervalMs, 5000);
+    const timer = window.setInterval(() => {
+      edgeApi.getAgentSession(authSession.token).then(setSession).catch(() => undefined);
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [authSession, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
 
   const evaluation = useMemo(() => evaluateSession(session, orders, markets), [session, orders, markets]);
 
@@ -194,6 +225,16 @@ export const useAgentAutomation = ({
       .then(() => onStatus(evaluation.haltReason ?? "Agent halted."))
       .catch((error) => onError(error instanceof Error ? error.message : "Could not persist halted agent session."));
   }, [evaluation, onError, onStatus, session]);
+
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+
+    if (previousStatus === "running" && session?.status === "halted" && session.haltReason) {
+      onStatus(session.haltReason);
+    }
+
+    previousStatusRef.current = session?.status ?? null;
+  }, [onStatus, session?.haltReason, session?.status]);
 
   const generatePlan = async (payload: GenerateAutomationPlanPayload) => {
     if (!runtime?.aiEnabled) {
