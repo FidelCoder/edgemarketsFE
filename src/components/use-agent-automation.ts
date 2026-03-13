@@ -11,6 +11,7 @@ import {
   Market,
   OrderRecord,
   PnlLedgerEntry,
+  PnlLedgerRollups,
   PnlLedgerSummary,
   RuntimeConfig,
   AuthSession,
@@ -164,6 +165,7 @@ export const useAgentAutomation = ({
   const [session, setSession] = useState<AgentSession | null>(null);
   const [pnlSummary, setPnlSummary] = useState<PnlLedgerSummary | null>(null);
   const [pnlEntries, setPnlEntries] = useState<PnlLedgerEntry[]>([]);
+  const [pnlRollups, setPnlRollups] = useState<PnlLedgerRollups | null>(null);
   const [agentReviews, setAgentReviews] = useState<AgentReviewRecord[]>([]);
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
@@ -175,6 +177,7 @@ export const useAgentAutomation = ({
       setSession(null);
       setPnlSummary(null);
       setPnlEntries([]);
+      setPnlRollups(null);
       setAgentReviews([]);
       return;
     }
@@ -183,12 +186,14 @@ export const useAgentAutomation = ({
       edgeApi.getAgentSession(authSession.token),
       edgeApi.getPnlLedgerSummary(authSession.token),
       edgeApi.listPnlLedgerEntries(authSession.token, 6),
+      edgeApi.getPnlLedgerRollups(authSession.token, 5),
       edgeApi.listAgentReviews(authSession.token, 8)
     ])
-      .then(([nextSession, nextPnlSummary, nextPnlEntries, nextAgentReviews]) => {
+      .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews]) => {
         setSession(nextSession);
         setPnlSummary(nextPnlSummary);
         setPnlEntries(nextPnlEntries);
+        setPnlRollups(nextPnlRollups);
         setAgentReviews(nextAgentReviews);
       })
       .catch((error) => {
@@ -207,12 +212,14 @@ export const useAgentAutomation = ({
         edgeApi.getAgentSession(authSession.token),
         edgeApi.getPnlLedgerSummary(authSession.token),
         edgeApi.listPnlLedgerEntries(authSession.token, 6),
+        edgeApi.getPnlLedgerRollups(authSession.token, 5),
         edgeApi.listAgentReviews(authSession.token, 8)
       ])
-        .then(([nextSession, nextPnlSummary, nextPnlEntries, nextAgentReviews]) => {
+        .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews]) => {
           setSession(nextSession);
           setPnlSummary(nextPnlSummary);
           setPnlEntries(nextPnlEntries);
+          setPnlRollups(nextPnlRollups);
           setAgentReviews(nextAgentReviews);
         })
         .catch(() => undefined);
@@ -244,13 +251,15 @@ export const useAgentAutomation = ({
     };
     const saved = await edgeApi.upsertAgentSession(authSession.token, payload);
     setSession(saved);
-    const [nextPnlSummary, nextPnlEntries, nextAgentReviews] = await Promise.all([
+    const [nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews] = await Promise.all([
       edgeApi.getPnlLedgerSummary(authSession.token),
       edgeApi.listPnlLedgerEntries(authSession.token, 6),
+      edgeApi.getPnlLedgerRollups(authSession.token, 5),
       edgeApi.listAgentReviews(authSession.token, 8)
     ]);
     setPnlSummary(nextPnlSummary);
     setPnlEntries(nextPnlEntries);
+    setPnlRollups(nextPnlRollups);
     setAgentReviews(nextAgentReviews);
     return saved;
   };
@@ -429,6 +438,7 @@ export const useAgentAutomation = ({
     evaluation,
     pnlSummary,
     pnlEntries,
+    pnlRollups,
     agentReviews,
     planPending,
     executionPending,

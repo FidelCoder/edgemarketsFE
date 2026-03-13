@@ -339,6 +339,7 @@
 .agentPlanBody,
 .agentPnlSummary,
 .agentReviewHistory,
+.agentRollupBlock,
 .agentLegList,
 .agentLegCard {
   display: grid;
@@ -430,6 +431,16 @@
   gap: 0.5rem;
 }
 
+.agentRollupGrid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.agentRollupList {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .agentLedgerRow {
   display: flex;
   justify-content: space-between;
@@ -452,6 +463,17 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.agentRollupRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.7rem 0.76rem;
+  border-radius: 14px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .agentLedgerRow > div {
   display: grid;
   gap: 0.12rem;
@@ -460,6 +482,11 @@
 .agentReviewRow > div {
   display: grid;
   gap: 0.18rem;
+}
+
+.agentRollupRow > div {
+  display: grid;
+  gap: 0.12rem;
 }
 
 .agentLedgerRow span {
@@ -471,6 +498,12 @@
   color: var(--text-muted);
   font-size: 0.72rem;
   line-height: 1.45;
+}
+
+.agentRollupRow span,
+.agentRollupBlock > span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
 }
 
 .agentReviewMeta {

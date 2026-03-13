@@ -223,6 +223,7 @@ export const DashboardTradingGrid = ({
           evaluation={agentAutomation.evaluation}
           pnlSummary={agentAutomation.pnlSummary}
           pnlEntries={agentAutomation.pnlEntries}
+          pnlRollups={agentAutomation.pnlRollups}
           agentReviews={agentAutomation.agentReviews}
           planPending={agentAutomation.planPending}
           executionPending={agentAutomation.executionPending}

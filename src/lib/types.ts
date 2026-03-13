@@ -518,3 +518,22 @@ export interface PnlLedgerSummary {
   winRate: number;
   latestClosedAt?: string;
 }
+
+export interface PnlLedgerRollupItem {
+  key: string;
+  label: string;
+  subtitle?: string;
+  closedTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  flatTrades: number;
+  totalRealizedPnlUsd: number;
+  winRate: number;
+}
+
+export interface PnlLedgerRollups {
+  userId: string;
+  byMarket: PnlLedgerRollupItem[];
+  byCategory: PnlLedgerRollupItem[];
+  byStrategy: PnlLedgerRollupItem[];
+}

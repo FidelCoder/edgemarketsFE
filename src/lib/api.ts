@@ -23,6 +23,7 @@ import {
   OrderQuery,
   OrderRecord,
   PnlLedgerEntry,
+  PnlLedgerRollups,
   PnlLedgerSummary,
   PolymarketProfile,
   RuntimeConfig,
@@ -243,6 +244,9 @@ export const edgeApi = {
 
   getPnlLedgerSummary: (sessionToken: string): Promise<PnlLedgerSummary> =>
     requestWithAuth<PnlLedgerSummary>("/api/pnl-ledger/summary", sessionToken),
+
+  getPnlLedgerRollups: (sessionToken: string, limit = 5): Promise<PnlLedgerRollups> =>
+    requestWithAuth<PnlLedgerRollups>(`/api/pnl-ledger/rollups${toQueryString({ limit })}`, sessionToken),
 
   getPolymarketProfile: (walletAddress: string): Promise<PolymarketProfile> =>
     request<PolymarketProfile>(`/api/polymarket/profile/${walletAddress}`),

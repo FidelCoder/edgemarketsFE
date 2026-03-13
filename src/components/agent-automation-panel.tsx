@@ -11,6 +11,8 @@ import {
   GenerateAutomationPlanPayload,
   Market,
   PnlLedgerEntry,
+  PnlLedgerRollupItem,
+  PnlLedgerRollups,
   PnlLedgerSummary,
   RuntimeConfig
 } from "@/lib/types";
@@ -24,6 +26,7 @@ interface AgentAutomationPanelProps {
   evaluation: AgentEvaluationSnapshot | null;
   pnlSummary: PnlLedgerSummary | null;
   pnlEntries: PnlLedgerEntry[];
+  pnlRollups: PnlLedgerRollups | null;
   agentReviews: AgentReviewRecord[];
   planPending: boolean;
   executionPending: boolean;
@@ -59,6 +62,7 @@ export const AgentAutomationPanel = ({
   evaluation,
   pnlSummary,
   pnlEntries,
+  pnlRollups,
   agentReviews,
   planPending,
   executionPending,
@@ -100,6 +104,32 @@ export const AgentAutomationPanel = ({
   }, [enabledProviders, provider]);
 
   const selectedProvider = enabledProviders.find((entry) => entry.id === provider) ?? null;
+
+  const renderRollupList = (title: string, items: PnlLedgerRollupItem[]) => (
+    <div className="agentRollupBlock">
+      <span>{title}</span>
+      {items.length > 0 ? (
+        <div className="agentRollupList">
+          {items.map((item) => (
+            <div key={item.key} className="agentRollupRow">
+              <div>
+                <strong>{item.label}</strong>
+                <span>
+                  {item.closedTrades} trades · {(item.winRate * 100).toFixed(1)}% win rate
+                </span>
+                {item.subtitle ? <span>{item.subtitle}</span> : null}
+              </div>
+              <div className={item.totalRealizedPnlUsd >= 0 ? "agentLedgerPositive" : "agentLedgerNegative"}>
+                {formatUsd(item.totalRealizedPnlUsd)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="emptyState">No closed-trade groups yet.</p>
+      )}
+    </div>
+  );
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((current) =>
@@ -438,6 +468,14 @@ export const AgentAutomationPanel = ({
               ) : (
                 <p className="emptyState">No realized exits yet. Closed trades will appear here once the ledger matches buys against sells.</p>
               )}
+
+              {pnlRollups ? (
+                <div className="agentRollupGrid">
+                  {renderRollupList("By market", pnlRollups.byMarket)}
+                  {renderRollupList("By category", pnlRollups.byCategory)}
+                  {renderRollupList("By strategy", pnlRollups.byStrategy)}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
