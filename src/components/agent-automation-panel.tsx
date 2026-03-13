@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AiProvider,
   AgentEvaluationSnapshot,
+  AgentReviewRecord,
   AgentSession,
   AuthSession,
   AutomationPlan,
@@ -23,6 +24,7 @@ interface AgentAutomationPanelProps {
   evaluation: AgentEvaluationSnapshot | null;
   pnlSummary: PnlLedgerSummary | null;
   pnlEntries: PnlLedgerEntry[];
+  agentReviews: AgentReviewRecord[];
   planPending: boolean;
   executionPending: boolean;
   onGeneratePlan: (payload: GenerateAutomationPlanPayload) => Promise<void>;
@@ -57,6 +59,7 @@ export const AgentAutomationPanel = ({
   evaluation,
   pnlSummary,
   pnlEntries,
+  agentReviews,
   planPending,
   executionPending,
   onGeneratePlan,
@@ -315,6 +318,44 @@ export const AgentAutomationPanel = ({
           ) : null}
 
           {session.haltReason ? <p className="emptyState">{session.haltReason}</p> : null}
+
+          <div className="agentReviewHistory">
+            <div className="insightTextBlock">
+              <span>Review history</span>
+              <p>
+                Worker decisions recorded on each due review cycle so the agent state is inspectable.
+              </p>
+            </div>
+
+            {agentReviews.length > 0 ? (
+              <div className="agentReviewList">
+                {agentReviews.map((review) => (
+                  <div key={review.id} className="agentReviewRow">
+                    <div>
+                      <strong>{new Date(review.reviewedAt).toLocaleString()}</strong>
+                      <span>
+                        {formatUsd(review.evaluation.effectiveBankrollUsd)} effective ·{" "}
+                        {formatUsd(review.evaluation.dayPnlUsd)} day PnL ·{" "}
+                        {formatPercent(review.evaluation.drawdownPct)} drawdown
+                      </span>
+                    </div>
+                    <div className="agentReviewMeta">
+                      <span
+                        className={
+                          review.decision === "halt" ? "agentReviewDecision agentReviewDecisionHalt" : "agentReviewDecision agentReviewDecisionHold"
+                        }
+                      >
+                        {review.decision === "halt" ? "Halt" : "Hold"}
+                      </span>
+                      <span>{review.reason ?? "Risk checks passed."}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="emptyState">No worker reviews yet. Start the agent and wait for the first scheduled review cycle.</p>
+            )}
+          </div>
         </div>
       ) : null}
 

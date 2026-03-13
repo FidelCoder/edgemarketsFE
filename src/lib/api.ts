@@ -1,5 +1,6 @@
 import { apiBaseUrl } from "./config";
 import {
+  AgentReviewRecord,
   AgentSession,
   ApiEnvelope,
   AutomationPlan,
@@ -233,6 +234,9 @@ export const edgeApi = {
       method: "PUT",
       body: JSON.stringify(payload)
     }),
+
+  listAgentReviews: (sessionToken: string, limit = 20): Promise<AgentReviewRecord[]> =>
+    requestWithAuth<AgentReviewRecord[]>(`/api/agent/reviews${toQueryString({ limit })}`, sessionToken),
 
   listPnlLedgerEntries: (sessionToken: string, limit = 20): Promise<PnlLedgerEntry[]> =>
     requestWithAuth<PnlLedgerEntry[]>(`/api/pnl-ledger${toQueryString({ limit })}`, sessionToken),

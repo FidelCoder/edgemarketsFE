@@ -338,6 +338,7 @@
 .agentSessionSummary,
 .agentPlanBody,
 .agentPnlSummary,
+.agentReviewHistory,
 .agentLegList,
 .agentLegCard {
   display: grid;
@@ -424,6 +425,11 @@
   gap: 0.5rem;
 }
 
+.agentReviewList {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .agentLedgerRow {
   display: flex;
   justify-content: space-between;
@@ -435,14 +441,64 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.agentReviewRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.78rem 0.82rem;
+  border-radius: 14px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .agentLedgerRow > div {
   display: grid;
   gap: 0.12rem;
 }
 
+.agentReviewRow > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
 .agentLedgerRow span {
   color: var(--text-muted);
   font-size: 0.72rem;
+}
+
+.agentReviewRow span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.agentReviewMeta {
+  justify-items: end;
+  text-align: right;
+}
+
+.agentReviewDecision {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.2rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.agentReviewDecisionHold {
+  background: rgba(147, 241, 195, 0.12);
+  border: 1px solid rgba(147, 241, 195, 0.24);
+  color: #93f1c3;
+}
+
+.agentReviewDecisionHalt {
+  background: rgba(255, 188, 198, 0.12);
+  border: 1px solid rgba(255, 188, 198, 0.22);
+  color: #ffbcc6;
 }
 
 .agentLedgerPositive {
