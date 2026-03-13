@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AiProvider,
   AgentEvaluationSnapshot,
+  AgentReviewDecision,
   AgentReviewRecord,
+  AgentReviewSummary,
   AgentSession,
   AuthSession,
   AutomationPlan,
@@ -27,9 +29,14 @@ interface AgentAutomationPanelProps {
   pnlSummary: PnlLedgerSummary | null;
   pnlEntries: PnlLedgerEntry[];
   pnlRollups: PnlLedgerRollups | null;
+  agentReviewSummary: AgentReviewSummary | null;
   agentReviews: AgentReviewRecord[];
+  reviewFilter: AgentReviewDecision | "all";
+  reviewLimit: number;
   planPending: boolean;
   executionPending: boolean;
+  onReviewFilterChange: (value: AgentReviewDecision | "all") => void;
+  onReviewLimitChange: (value: number) => void;
   onGeneratePlan: (payload: GenerateAutomationPlanPayload) => Promise<void>;
   onExecutePlan: () => Promise<void>;
   onHaltPlan: () => void;
@@ -63,9 +70,14 @@ export const AgentAutomationPanel = ({
   pnlSummary,
   pnlEntries,
   pnlRollups,
+  agentReviewSummary,
   agentReviews,
+  reviewFilter,
+  reviewLimit,
   planPending,
   executionPending,
+  onReviewFilterChange,
+  onReviewLimitChange,
   onGeneratePlan,
   onExecutePlan,
   onHaltPlan
@@ -355,6 +367,57 @@ export const AgentAutomationPanel = ({
               <p>
                 Worker decisions recorded on each due review cycle so the agent state is inspectable.
               </p>
+            </div>
+
+            {agentReviewSummary ? (
+              <div className="agentReviewSummaryGrid">
+                <div>
+                  <span>Total reviews</span>
+                  <strong>{agentReviewSummary.totalReviews}</strong>
+                </div>
+                <div>
+                  <span>Hold / Halt</span>
+                  <strong>
+                    {agentReviewSummary.holdDecisions} / {agentReviewSummary.haltDecisions}
+                  </strong>
+                </div>
+                <div>
+                  <span>Halt rate</span>
+                  <strong>{(agentReviewSummary.haltRate * 100).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <span>Avg drawdown</span>
+                  <strong>{formatPercent(agentReviewSummary.averageDrawdownPct)}</strong>
+                </div>
+                <div>
+                  <span>Avg day PnL</span>
+                  <strong>{formatUsd(agentReviewSummary.averageDayPnlUsd)}</strong>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="agentReviewControls">
+              <label className="compactField">
+                Decision
+                <select
+                  value={reviewFilter}
+                  onChange={(event) => onReviewFilterChange(event.target.value as AgentReviewDecision | "all")}
+                >
+                  <option value="all">All</option>
+                  <option value="hold">Hold</option>
+                  <option value="halt">Halt</option>
+                </select>
+              </label>
+
+              <label className="compactField">
+                Limit
+                <select value={String(reviewLimit)} onChange={(event) => onReviewLimitChange(Number(event.target.value))}>
+                  <option value="5">5</option>
+                  <option value="8">8</option>
+                  <option value="12">12</option>
+                  <option value="20">20</option>
+                </select>
+              </label>
             </div>
 
             {agentReviews.length > 0 ? (

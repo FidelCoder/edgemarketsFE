@@ -302,6 +302,17 @@ export interface AgentReviewRecord {
   createdAt: string;
 }
 
+export interface AgentReviewSummary {
+  userId: string;
+  totalReviews: number;
+  holdDecisions: number;
+  haltDecisions: number;
+  haltRate: number;
+  averageDrawdownPct: number;
+  averageDayPnlUsd: number;
+  latestReviewedAt?: string;
+}
+
 export interface UpsertAgentSessionPayload {
   status: AgentSessionStatus;
   plan: AutomationPlan;

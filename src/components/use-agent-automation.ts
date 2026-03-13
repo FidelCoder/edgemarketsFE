@@ -5,7 +5,9 @@ import { edgeApi } from "@/lib/api";
 import { placeLiveMarketOrder, type LiveClobContext } from "@/lib/polymarket";
 import {
   AgentEvaluationSnapshot,
+  AgentReviewDecision,
   AgentReviewRecord,
+  AgentReviewSummary,
   AgentSession,
   GenerateAutomationPlanPayload,
   Market,
@@ -166,11 +168,15 @@ export const useAgentAutomation = ({
   const [pnlSummary, setPnlSummary] = useState<PnlLedgerSummary | null>(null);
   const [pnlEntries, setPnlEntries] = useState<PnlLedgerEntry[]>([]);
   const [pnlRollups, setPnlRollups] = useState<PnlLedgerRollups | null>(null);
+  const [agentReviewSummary, setAgentReviewSummary] = useState<AgentReviewSummary | null>(null);
   const [agentReviews, setAgentReviews] = useState<AgentReviewRecord[]>([]);
+  const [reviewFilter, setReviewFilter] = useState<AgentReviewDecision | "all">("all");
+  const [reviewLimit, setReviewLimit] = useState(8);
   const [planPending, setPlanPending] = useState(false);
   const [executionPending, setExecutionPending] = useState(false);
   const previousStatusRef = useRef<AgentSession["status"] | null>(null);
   const realizedPnlUsd = pnlSummary?.totalRealizedPnlUsd ?? 0;
+  const filteredReviewDecision = reviewFilter === "all" ? undefined : reviewFilter;
 
   useEffect(() => {
     if (!authSession) {
@@ -178,6 +184,7 @@ export const useAgentAutomation = ({
       setPnlSummary(null);
       setPnlEntries([]);
       setPnlRollups(null);
+      setAgentReviewSummary(null);
       setAgentReviews([]);
       return;
     }
@@ -187,19 +194,21 @@ export const useAgentAutomation = ({
       edgeApi.getPnlLedgerSummary(authSession.token),
       edgeApi.listPnlLedgerEntries(authSession.token, 6),
       edgeApi.getPnlLedgerRollups(authSession.token, 5),
-      edgeApi.listAgentReviews(authSession.token, 8)
+      edgeApi.getAgentReviewSummary(authSession.token),
+      edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
     ])
-      .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews]) => {
+      .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews]) => {
         setSession(nextSession);
         setPnlSummary(nextPnlSummary);
         setPnlEntries(nextPnlEntries);
         setPnlRollups(nextPnlRollups);
+        setAgentReviewSummary(nextAgentReviewSummary);
         setAgentReviews(nextAgentReviews);
       })
       .catch((error) => {
         onError(error instanceof Error ? error.message : "Could not load persisted agent session.");
       });
-  }, [authSession, onError]);
+  }, [authSession, filteredReviewDecision, onError, reviewLimit]);
 
   useEffect(() => {
     if (!authSession || !runtime?.agentWorkerEnabled || session?.status !== "running") {
@@ -213,20 +222,22 @@ export const useAgentAutomation = ({
         edgeApi.getPnlLedgerSummary(authSession.token),
         edgeApi.listPnlLedgerEntries(authSession.token, 6),
         edgeApi.getPnlLedgerRollups(authSession.token, 5),
-        edgeApi.listAgentReviews(authSession.token, 8)
+        edgeApi.getAgentReviewSummary(authSession.token),
+        edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
       ])
-        .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews]) => {
+        .then(([nextSession, nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews]) => {
           setSession(nextSession);
           setPnlSummary(nextPnlSummary);
           setPnlEntries(nextPnlEntries);
           setPnlRollups(nextPnlRollups);
+          setAgentReviewSummary(nextAgentReviewSummary);
           setAgentReviews(nextAgentReviews);
         })
         .catch(() => undefined);
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [authSession, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
+  }, [authSession, filteredReviewDecision, reviewLimit, runtime?.agentWorkerEnabled, runtime?.agentWorkerIntervalMs, session?.status]);
 
   const evaluation = useMemo(
     () => evaluateSession(session, orders, markets, realizedPnlUsd),
@@ -251,15 +262,17 @@ export const useAgentAutomation = ({
     };
     const saved = await edgeApi.upsertAgentSession(authSession.token, payload);
     setSession(saved);
-    const [nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviews] = await Promise.all([
+    const [nextPnlSummary, nextPnlEntries, nextPnlRollups, nextAgentReviewSummary, nextAgentReviews] = await Promise.all([
       edgeApi.getPnlLedgerSummary(authSession.token),
       edgeApi.listPnlLedgerEntries(authSession.token, 6),
       edgeApi.getPnlLedgerRollups(authSession.token, 5),
-      edgeApi.listAgentReviews(authSession.token, 8)
+      edgeApi.getAgentReviewSummary(authSession.token),
+      edgeApi.listAgentReviews(authSession.token, { limit: reviewLimit, decision: filteredReviewDecision })
     ]);
     setPnlSummary(nextPnlSummary);
     setPnlEntries(nextPnlEntries);
     setPnlRollups(nextPnlRollups);
+    setAgentReviewSummary(nextAgentReviewSummary);
     setAgentReviews(nextAgentReviews);
     return saved;
   };
@@ -439,9 +452,14 @@ export const useAgentAutomation = ({
     pnlSummary,
     pnlEntries,
     pnlRollups,
+    agentReviewSummary,
     agentReviews,
+    reviewFilter,
+    reviewLimit,
     planPending,
     executionPending,
+    setReviewFilter,
+    setReviewLimit,
     generatePlan,
     executePlan,
     haltSession

@@ -1,6 +1,7 @@
 import { apiBaseUrl } from "./config";
 import {
   AgentReviewRecord,
+  AgentReviewSummary,
   AgentSession,
   ApiEnvelope,
   AutomationPlan,
@@ -236,8 +237,17 @@ export const edgeApi = {
       body: JSON.stringify(payload)
     }),
 
-  listAgentReviews: (sessionToken: string, limit = 20): Promise<AgentReviewRecord[]> =>
-    requestWithAuth<AgentReviewRecord[]>(`/api/agent/reviews${toQueryString({ limit })}`, sessionToken),
+  listAgentReviews: (
+    sessionToken: string,
+    options?: { limit?: number; decision?: "hold" | "halt" }
+  ): Promise<AgentReviewRecord[]> =>
+    requestWithAuth<AgentReviewRecord[]>(
+      `/api/agent/reviews${toQueryString({ limit: options?.limit, decision: options?.decision })}`,
+      sessionToken
+    ),
+
+  getAgentReviewSummary: (sessionToken: string): Promise<AgentReviewSummary> =>
+    requestWithAuth<AgentReviewSummary>("/api/agent/reviews/summary", sessionToken),
 
   listPnlLedgerEntries: (sessionToken: string, limit = 20): Promise<PnlLedgerEntry[]> =>
     requestWithAuth<PnlLedgerEntry[]>(`/api/pnl-ledger${toQueryString({ limit })}`, sessionToken),

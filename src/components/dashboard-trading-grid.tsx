@@ -224,9 +224,14 @@ export const DashboardTradingGrid = ({
           pnlSummary={agentAutomation.pnlSummary}
           pnlEntries={agentAutomation.pnlEntries}
           pnlRollups={agentAutomation.pnlRollups}
+          agentReviewSummary={agentAutomation.agentReviewSummary}
           agentReviews={agentAutomation.agentReviews}
+          reviewFilter={agentAutomation.reviewFilter}
+          reviewLimit={agentAutomation.reviewLimit}
           planPending={agentAutomation.planPending}
           executionPending={agentAutomation.executionPending}
+          onReviewFilterChange={agentAutomation.setReviewFilter}
+          onReviewLimitChange={agentAutomation.setReviewLimit}
           onGeneratePlan={agentAutomation.generatePlan}
           onExecutePlan={agentAutomation.executePlan}
           onHaltPlan={() => agentAutomation.haltSession()}
