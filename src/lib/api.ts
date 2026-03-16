@@ -1,4 +1,4 @@
-import { apiBaseUrl } from "./config";
+import { apiBaseUrl, getApiBaseUrl } from "./config";
 import { AgentReviewQueryOptions, PnlLedgerQueryOptions } from "./analytics-types";
 import {
   AgentReviewRecord,
@@ -56,7 +56,7 @@ const toNetworkError = (error: unknown): Error => {
 };
 
 const buildRequest = (path: string, init?: RequestInit): Request => {
-  return new Request(`${apiBaseUrl}${path}`, {
+  return new Request(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
