@@ -42,6 +42,17 @@ export interface LiveClobContext {
   profile: PolymarketProfile;
 }
 
+export interface WalletPreflightStatus {
+  walletAddress: string;
+  funderAddress: string;
+  proxyWalletAddress: string | null;
+  balance: string;
+  allowance: string;
+  readyForLiveTrading: boolean;
+  warnings: string[];
+  checkedAt: string;
+}
+
 interface MarketOrderIntent {
   market: Market;
   action: ActionType;
@@ -474,5 +485,35 @@ export const checkCollateralAllowance = async (context: LiveClobContext): Promis
   return {
     balance: allowance.balance,
     allowance: allowance.allowance
+  };
+};
+
+export const runWalletPreflight = async (context: LiveClobContext): Promise<WalletPreflightStatus> => {
+  const collateral = await checkCollateralAllowance(context);
+  const balanceValue = Number(collateral.balance);
+  const allowanceValue = Number(collateral.allowance);
+  const warnings: string[] = [];
+
+  if (!Number.isFinite(balanceValue) || balanceValue <= 0) {
+    warnings.push("No positive collateral balance detected on the Polymarket funder wallet.");
+  }
+
+  if (!Number.isFinite(allowanceValue) || allowanceValue <= 0) {
+    warnings.push("No positive collateral allowance detected for the Polymarket funder wallet.");
+  }
+
+  if (context.profile.proxyWalletAddress) {
+    warnings.push("Polymarket is using a proxy funder wallet. Fund and approve the proxy wallet, not only the signer EOA.");
+  }
+
+  return {
+    walletAddress: context.walletAddress,
+    funderAddress: context.funderAddress,
+    proxyWalletAddress: context.profile.proxyWalletAddress,
+    balance: collateral.balance,
+    allowance: collateral.allowance,
+    readyForLiveTrading: warnings.length === 0,
+    warnings,
+    checkedAt: new Date().toISOString()
   };
 };

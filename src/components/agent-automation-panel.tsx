@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AgentAnalyticsPanel } from "./agent-analytics-panel";
 import {
   AiProvider,
   AgentEvaluationSnapshot,
@@ -12,12 +13,9 @@ import {
   AutomationPlan,
   GenerateAutomationPlanPayload,
   Market,
-  PnlLedgerEntry,
-  PnlLedgerRollupItem,
-  PnlLedgerRollups,
-  PnlLedgerSummary,
   RuntimeConfig
 } from "@/lib/types";
+import { PnlLedgerEntry, PnlLedgerRollups, PnlLedgerSummary } from "@/lib/types";
 
 interface AgentAutomationPanelProps {
   runtime: RuntimeConfig | null;
@@ -33,10 +31,18 @@ interface AgentAutomationPanelProps {
   agentReviews: AgentReviewRecord[];
   reviewFilter: AgentReviewDecision | "all";
   reviewLimit: number;
+  analyticsDateFrom: string;
+  analyticsDateTo: string;
   planPending: boolean;
   executionPending: boolean;
+  exportingPnl: boolean;
+  exportingReviews: boolean;
   onReviewFilterChange: (value: AgentReviewDecision | "all") => void;
   onReviewLimitChange: (value: number) => void;
+  onAnalyticsDateFromChange: (value: string) => void;
+  onAnalyticsDateToChange: (value: string) => void;
+  onExportPnl: () => void;
+  onExportReviews: () => void;
   onGeneratePlan: (payload: GenerateAutomationPlanPayload) => Promise<void>;
   onExecutePlan: () => Promise<void>;
   onHaltPlan: () => void;
@@ -74,10 +80,18 @@ export const AgentAutomationPanel = ({
   agentReviews,
   reviewFilter,
   reviewLimit,
+  analyticsDateFrom,
+  analyticsDateTo,
   planPending,
   executionPending,
+  exportingPnl,
+  exportingReviews,
   onReviewFilterChange,
   onReviewLimitChange,
+  onAnalyticsDateFromChange,
+  onAnalyticsDateToChange,
+  onExportPnl,
+  onExportReviews,
   onGeneratePlan,
   onExecutePlan,
   onHaltPlan
@@ -116,32 +130,6 @@ export const AgentAutomationPanel = ({
   }, [enabledProviders, provider]);
 
   const selectedProvider = enabledProviders.find((entry) => entry.id === provider) ?? null;
-
-  const renderRollupList = (title: string, items: PnlLedgerRollupItem[]) => (
-    <div className="agentRollupBlock">
-      <span>{title}</span>
-      {items.length > 0 ? (
-        <div className="agentRollupList">
-          {items.map((item) => (
-            <div key={item.key} className="agentRollupRow">
-              <div>
-                <strong>{item.label}</strong>
-                <span>
-                  {item.closedTrades} trades · {(item.winRate * 100).toFixed(1)}% win rate
-                </span>
-                {item.subtitle ? <span>{item.subtitle}</span> : null}
-              </div>
-              <div className={item.totalRealizedPnlUsd >= 0 ? "agentLedgerPositive" : "agentLedgerNegative"}>
-                {formatUsd(item.totalRealizedPnlUsd)}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="emptyState">No closed-trade groups yet.</p>
-      )}
-    </div>
-  );
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((current) =>
@@ -360,95 +348,6 @@ export const AgentAutomationPanel = ({
           ) : null}
 
           {session.haltReason ? <p className="emptyState">{session.haltReason}</p> : null}
-
-          <div className="agentReviewHistory">
-            <div className="insightTextBlock">
-              <span>Review history</span>
-              <p>
-                Worker decisions recorded on each due review cycle so the agent state is inspectable.
-              </p>
-            </div>
-
-            {agentReviewSummary ? (
-              <div className="agentReviewSummaryGrid">
-                <div>
-                  <span>Total reviews</span>
-                  <strong>{agentReviewSummary.totalReviews}</strong>
-                </div>
-                <div>
-                  <span>Hold / Halt</span>
-                  <strong>
-                    {agentReviewSummary.holdDecisions} / {agentReviewSummary.haltDecisions}
-                  </strong>
-                </div>
-                <div>
-                  <span>Halt rate</span>
-                  <strong>{(agentReviewSummary.haltRate * 100).toFixed(1)}%</strong>
-                </div>
-                <div>
-                  <span>Avg drawdown</span>
-                  <strong>{formatPercent(agentReviewSummary.averageDrawdownPct)}</strong>
-                </div>
-                <div>
-                  <span>Avg day PnL</span>
-                  <strong>{formatUsd(agentReviewSummary.averageDayPnlUsd)}</strong>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="agentReviewControls">
-              <label className="compactField">
-                Decision
-                <select
-                  value={reviewFilter}
-                  onChange={(event) => onReviewFilterChange(event.target.value as AgentReviewDecision | "all")}
-                >
-                  <option value="all">All</option>
-                  <option value="hold">Hold</option>
-                  <option value="halt">Halt</option>
-                </select>
-              </label>
-
-              <label className="compactField">
-                Limit
-                <select value={String(reviewLimit)} onChange={(event) => onReviewLimitChange(Number(event.target.value))}>
-                  <option value="5">5</option>
-                  <option value="8">8</option>
-                  <option value="12">12</option>
-                  <option value="20">20</option>
-                </select>
-              </label>
-            </div>
-
-            {agentReviews.length > 0 ? (
-              <div className="agentReviewList">
-                {agentReviews.map((review) => (
-                  <div key={review.id} className="agentReviewRow">
-                    <div>
-                      <strong>{new Date(review.reviewedAt).toLocaleString()}</strong>
-                      <span>
-                        {formatUsd(review.evaluation.effectiveBankrollUsd)} effective ·{" "}
-                        {formatUsd(review.evaluation.dayPnlUsd)} day PnL ·{" "}
-                        {formatPercent(review.evaluation.drawdownPct)} drawdown
-                      </span>
-                    </div>
-                    <div className="agentReviewMeta">
-                      <span
-                        className={
-                          review.decision === "halt" ? "agentReviewDecision agentReviewDecisionHalt" : "agentReviewDecision agentReviewDecisionHold"
-                        }
-                      >
-                        {review.decision === "halt" ? "Halt" : "Hold"}
-                      </span>
-                      <span>{review.reason ?? "Risk checks passed."}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="emptyState">No worker reviews yet. Start the agent and wait for the first scheduled review cycle.</p>
-            )}
-          </div>
         </div>
       ) : null}
 
@@ -502,46 +401,6 @@ export const AgentAutomationPanel = ({
             </div>
           </div>
 
-          {pnlSummary ? (
-            <div className="agentPnlSummary">
-              <div className="insightTextBlock">
-                <span>Realized ledger</span>
-                <p>
-                  {pnlSummary.closedTrades} closed trades · {formatUsd(pnlSummary.totalRealizedPnlUsd)} realized ·{" "}
-                  {(pnlSummary.winRate * 100).toFixed(1)}% win rate
-                </p>
-              </div>
-
-              {pnlEntries.length > 0 ? (
-                <div className="agentLedgerList">
-                  {pnlEntries.map((entry) => (
-                    <div key={entry.id} className="agentLedgerRow">
-                      <div>
-                        <strong>{entry.marketId}</strong>
-                        <span>
-                          {entry.outcome} · {entry.source}
-                        </span>
-                      </div>
-                      <div className={entry.realizedPnlUsd >= 0 ? "agentLedgerPositive" : "agentLedgerNegative"}>
-                        {formatUsd(entry.realizedPnlUsd)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="emptyState">No realized exits yet. Closed trades will appear here once the ledger matches buys against sells.</p>
-              )}
-
-              {pnlRollups ? (
-                <div className="agentRollupGrid">
-                  {renderRollupList("By market", pnlRollups.byMarket)}
-                  {renderRollupList("By category", pnlRollups.byCategory)}
-                  {renderRollupList("By strategy", pnlRollups.byStrategy)}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           <div className="agentLegList">
             {plan.legs.map((leg) => (
               <article key={leg.marketId} className="agentLegCard">
@@ -584,6 +443,26 @@ export const AgentAutomationPanel = ({
           ) : null}
         </div>
       ) : null}
+
+      <AgentAnalyticsPanel
+        pnlSummary={pnlSummary}
+        pnlEntries={pnlEntries}
+        pnlRollups={pnlRollups}
+        agentReviewSummary={agentReviewSummary}
+        agentReviews={agentReviews}
+        reviewFilter={reviewFilter}
+        reviewLimit={reviewLimit}
+        dateFrom={analyticsDateFrom}
+        dateTo={analyticsDateTo}
+        exportingPnl={exportingPnl}
+        exportingReviews={exportingReviews}
+        onReviewFilterChange={onReviewFilterChange}
+        onReviewLimitChange={onReviewLimitChange}
+        onDateFromChange={onAnalyticsDateFromChange}
+        onDateToChange={onAnalyticsDateToChange}
+        onExportPnl={onExportPnl}
+        onExportReviews={onExportReviews}
+      />
     </section>
   );
 };

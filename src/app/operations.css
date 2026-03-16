@@ -1,0 +1,56 @@
+.agentAnalyticsToolbar,
+.agentExportActions,
+.walletPreflightHeader,
+.walletPreflightWarnings {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.agentAnalyticsToolbar {
+  justify-content: space-between;
+}
+
+.agentExportActions {
+  justify-content: flex-end;
+}
+
+.walletPreflightPanel {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(133, 160, 205, 0.12);
+  background: rgba(10, 15, 25, 0.84);
+}
+
+.walletPreflightHeader {
+  justify-content: space-between;
+}
+
+.walletPreflightHeader span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.walletPreflightWarnings span {
+  padding: 0.36rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 188, 198, 0.18);
+  background: rgba(255, 188, 198, 0.08);
+  color: #ffbcc6;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .agentAnalyticsToolbar {
+    align-items: stretch;
+  }
+
+  .agentExportActions {
+    justify-content: flex-start;
+  }
+}

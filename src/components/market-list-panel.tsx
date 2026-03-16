@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Market } from "@/lib/types";
-import { MarketAvatar } from "./market-avatar";
+import { edgeApi } from "@/lib/api";
+import { Market, MarketContext } from "@/lib/types";
+import { MarketDiscoveryCard } from "./market-discovery-card";
 
 interface MarketListPanelProps {
   markets: Market[];
@@ -21,36 +22,6 @@ const FEED_MODES: Array<{ id: FeedMode; label: string }> = [
   { id: "ending_soon", label: "Ending Soon" },
   { id: "live", label: "Live" }
 ];
-
-const formatCents = (value: number): string => `${Math.round(value * 100)}c`;
-
-const formatLiquidity = (value: number): string => {
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-
-  if (value >= 1_000) {
-    return `$${Math.round(value / 1_000)}k`;
-  }
-
-  return `$${Math.round(value)}`;
-};
-
-const formatDate = (value: string | null): string => {
-  if (!value) {
-    return "Open";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Open";
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric"
-  });
-};
 
 const toSortedEntries = (counts: Record<string, number>): string[] => {
   return Object.entries(counts)
@@ -131,6 +102,9 @@ export const MarketListPanel = ({
   const [feedMode, setFeedMode] = useState<FeedMode>("trending");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [activeSubcategory, setActiveSubcategory] = useState<string>("All");
+  const [hoveredMarketId, setHoveredMarketId] = useState<string | null>(null);
+  const [contextCache, setContextCache] = useState<Record<string, MarketContext>>({});
+  const [loadingContextIds, setLoadingContextIds] = useState<string[]>([]);
 
   const rankedMarkets = useMemo(() => sortByFeedMode(markets, feedMode), [feedMode, markets]);
 
@@ -184,6 +158,32 @@ export const MarketListPanel = ({
     () => buildSections(visibleMarkets, activeCategory, activeSubcategory),
     [activeCategory, activeSubcategory, visibleMarkets]
   );
+
+  const primeMarketContext = (marketId: string) => {
+    if (contextCache[marketId] || loadingContextIds.includes(marketId)) {
+      return;
+    }
+
+    setLoadingContextIds((current) => [...current, marketId]);
+    edgeApi
+      .getMarketContext(marketId)
+      .then((context) => {
+        setContextCache((current) => ({
+          ...current,
+          [marketId]: context
+        }));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        setLoadingContextIds((current) => current.filter((entry) => entry !== marketId));
+      });
+  };
+
+  useEffect(() => {
+    if (selectedMarketId) {
+      primeMarketContext(selectedMarketId);
+    }
+  }, [selectedMarketId]);
 
   return (
     <section className="panel marketListPanel marketExplorerPanel">
@@ -258,44 +258,26 @@ export const MarketListPanel = ({
                 {section.markets.map((market) => {
                   const strategyCount = strategyCountByMarket[market.id] ?? 0;
                   const isActive = market.id === selectedMarketId;
+                  const isHovered = hoveredMarketId === market.id;
+                  const isDimmed = hoveredMarketId !== null && hoveredMarketId !== market.id && !isActive;
 
                   return (
-                    <button
+                    <MarketDiscoveryCard
                       key={market.id}
-                      type="button"
-                      className={`marketDiscoveryCard ${isActive ? "marketDiscoveryCardActive" : ""}`.trim()}
-                      onClick={() => onSelectMarket(market.id)}
-                    >
-                      <div className="marketDiscoveryTop">
-                        <div className="marketDiscoveryLead">
-                          <MarketAvatar market={market} size="sm" />
-                          <div>
-                            <span className="marketCategory">{market.category}</span>
-                            <span className="marketDiscoverySubcategory">{market.subcategory}</span>
-                          </div>
-                        </div>
-                        <span className="marketDiscoveryVolume">{formatLiquidity(market.liquidityUsd)} vol</span>
-                      </div>
-
-                      <strong>{market.question}</strong>
-
-                      <div className="marketDiscoveryOutcomeGrid">
-                        <div className="marketDiscoveryOutcome marketDiscoveryOutcomeYes">
-                          <span>YES</span>
-                          <strong>{formatCents(market.yesPrice)}</strong>
-                        </div>
-                        <div className="marketDiscoveryOutcome marketDiscoveryOutcomeNo">
-                          <span>NO</span>
-                          <strong>{formatCents(market.noPrice)}</strong>
-                        </div>
-                      </div>
-
-                      <div className="marketDiscoveryFooter">
-                        <span>{strategyCount} strategies</span>
-                        <span>{market.negRisk ? "Neg risk" : "Standard"}</span>
-                        <span>{formatDate(market.endDate)}</span>
-                      </div>
-                    </button>
+                      market={market}
+                      strategyCount={strategyCount}
+                      isActive={isActive}
+                      isDimmed={isDimmed}
+                      isHovered={isHovered}
+                      intel={contextCache[market.id] ?? null}
+                      intelLoading={loadingContextIds.includes(market.id)}
+                      onSelect={onSelectMarket}
+                      onHoverStart={(marketId) => {
+                        setHoveredMarketId(marketId);
+                        primeMarketContext(marketId);
+                      }}
+                      onHoverEnd={() => setHoveredMarketId((current) => (current === market.id ? null : current))}
+                    />
                   );
                 })}
               </div>
