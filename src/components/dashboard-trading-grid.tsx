@@ -161,7 +161,14 @@ export const DashboardTradingGrid = ({
               markets={markets}
               strategyCount={selectedMarket ? strategyCountByMarket[selectedMarket.id] ?? 0 : 0}
             />
-            <MarketContextPanel market={selectedMarket} />
+            <MarketContextPanel
+              market={selectedMarket}
+              markets={markets}
+              insight={marketInsight}
+              insightPending={insightPending}
+              onGenerateInsight={onGenerateInsight}
+              onSelectMarket={(marketId) => onSelectMarket(marketId)}
+            />
           </div>
 
           <div className="marketSignalRail">

@@ -5,6 +5,7 @@ import "./dashboard.css";
 import "./panels.css";
 import "./dashboard-home.css";
 import "./operations.css";
+import "./market-intelligence.css";
 
 export const metadata: Metadata = {
   title: "EdgeMarkets",

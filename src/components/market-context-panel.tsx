@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { edgeApi } from "@/lib/api";
-import { Market, MarketComment, MarketContext, MarketPricePoint } from "@/lib/types";
+import { AiProvider, Market, MarketComment, MarketContext, MarketInsight } from "@/lib/types";
+import { MarketHistoryChart } from "./market-history-chart";
+import { MarketInsightSummaryCard } from "./market-insight-summary-card";
+import { MarketRelatedMarkets } from "./market-related-markets";
 
 interface MarketContextPanelProps {
   market: Market | null;
+  markets: Market[];
+  insight: MarketInsight | null;
+  insightPending: boolean;
+  onGenerateInsight: (options: { angle?: string; provider?: AiProvider; model?: string }) => Promise<void>;
+  onSelectMarket: (marketId: string) => void;
 }
 
 const formatUsd = (value: number | null): string => {
@@ -64,39 +72,18 @@ const shortAddress = (value: string | null): string => {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 };
 
-const buildPricePath = (points: MarketPricePoint[], width: number, height: number): string => {
-  if (points.length === 0) {
-    return "";
-  }
-
-  const prices = points.map((point) => point.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const range = Math.max(maxPrice - minPrice, 0.001);
-
-  return points
-    .map((point, index) => {
-      const x = (index / Math.max(points.length - 1, 1)) * width;
-      const y = height - ((point.price - minPrice) / range) * height;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
-};
-
-const buildAreaPath = (points: MarketPricePoint[], width: number, height: number): string => {
-  if (points.length === 0) {
-    return "";
-  }
-
-  const line = buildPricePath(points, width, height);
-  return `${line} L ${width},${height} L 0,${height} Z`;
-};
-
 const resolveDisplayName = (comment: MarketComment): string => {
   return comment.pseudonym ?? comment.displayName ?? shortAddress(comment.userAddress);
 };
 
-export const MarketContextPanel = ({ market }: MarketContextPanelProps) => {
+export const MarketContextPanel = ({
+  market,
+  markets,
+  insight,
+  insightPending,
+  onGenerateInsight,
+  onSelectMarket
+}: MarketContextPanelProps) => {
   const [context, setContext] = useState<MarketContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,10 +122,6 @@ export const MarketContextPanel = ({ market }: MarketContextPanelProps) => {
       cancelled = true;
     };
   }, [market?.id]);
-
-  const history = useMemo(() => context?.priceHistory ?? [], [context]);
-  const linePath = useMemo(() => buildPricePath(history, 100, 100), [history]);
-  const areaPath = useMemo(() => buildAreaPath(history, 100, 100), [history]);
 
   if (!market) {
     return null;
@@ -197,31 +180,11 @@ export const MarketContextPanel = ({ market }: MarketContextPanelProps) => {
               <div className="marketContextCardHead">
                 <div>
                   <span className="eyebrow">Chart</span>
-                  <h3>YES price history</h3>
+                  <h3>YES price history with ranges</h3>
                 </div>
-                <span className="tag">{history.length > 0 ? `${history.length} points` : "No history"}</span>
+                <span className="tag">{context.priceHistory.length > 0 ? `${context.priceHistory.length} points` : "No history"}</span>
               </div>
-
-              {history.length === 0 ? (
-                <p className="emptyState">Price history is not available for this market yet.</p>
-              ) : (
-                <>
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="marketContextChart">
-                    <defs>
-                      <linearGradient id="marketChartFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(22, 199, 132, 0.42)" />
-                        <stop offset="100%" stopColor="rgba(22, 199, 132, 0.02)" />
-                      </linearGradient>
-                    </defs>
-                    <path d={areaPath} fill="url(#marketChartFill)" />
-                    <path d={linePath} className="marketContextChartLine" />
-                  </svg>
-                  <div className="marketContextAxisRow">
-                    <span>{new Date(history[0]?.timestamp ?? Date.now()).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                    <span>{new Date(history[history.length - 1]?.timestamp ?? Date.now()).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                  </div>
-                </>
-              )}
+              <MarketHistoryChart history={context.priceHistory} />
             </article>
 
             <article className="marketContextCard discussionCard">
@@ -253,6 +216,16 @@ export const MarketContextPanel = ({ market }: MarketContextPanelProps) => {
                 </div>
               )}
             </article>
+          </div>
+
+          <div className="marketContextGrid marketContextGridSecondary">
+            <MarketRelatedMarkets market={market} markets={markets} onSelectMarket={onSelectMarket} />
+            <MarketInsightSummaryCard
+              market={market}
+              insight={insight}
+              pending={insightPending}
+              onGenerate={() => void onGenerateInsight({})}
+            />
           </div>
 
           {context.description || context.resolutionSource ? (
